@@ -31,6 +31,7 @@ button{font-family:inherit;letter-spacing:.06em;cursor:pointer}
 #banner .d{font-size:26px;color:var(--orange);text-shadow:0 0 10px var(--orange);line-height:1}
 #banner .t{font-size:16px;line-height:1.15}
 #banner{padding:8px 12px !important}
+#bDest{margin-top:5px;padding-top:5px;border-top:1px solid rgba(255,255,255,.2);font:600 14px system-ui,sans-serif;letter-spacing:0;color:#ffd27a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #radio{position:fixed;left:10px;right:10px;bottom:90px;z-index:2000;display:none;padding:12px;max-height:55vh;overflow:auto}
 #radio h2{margin:0 0 8px;font-weight:400;font-size:26px;color:var(--orange)}
 #radio .st{padding:10px;font-size:18px;border-bottom:1px solid rgba(255,46,136,.35);font-family:system-ui,sans-serif;letter-spacing:0}
@@ -129,7 +130,7 @@ body.nav #stopsBar{display:none !important}
   <div id="results" class="glass"></div>
 </div>
 
-<div id="banner" class="glass"><div class="d" id="bd"></div><div class="t" id="bt"></div></div>
+<div id="banner" class="glass"><div class="d" id="bd"></div><div class="t" id="bt"></div><div id="bDest"></div></div>
 
 <div id="lim"><small>SPEED<br>LIMIT</small><b id="limN">--</b></div>
 <div id="lanes"></div><div id="sigBox"></div>
@@ -417,7 +418,9 @@ function isArrive(s){if(s&&s.type===99)return false;return s&&(s.type===4||s.typ
 function instr(s){if(!s)return'';if(isArrive(s))return'¡Listo, llegamos!';return s.text}
 function instrSoon(s,m){if(isArrive(s))return'En '+m+' metros llegamos';return'En '+m+' metros, '+s.text.charAt(0).toLowerCase()+s.text.slice(1)}
 
-function navTick(p){if(!route||!p)return;try{extras(p)}catch(e){}
+function destTxt(){var n=function(x){return (x&&x.name?x.name:'Destino').split(',').slice(0,2).join(',')};var t=stops.length?'📍 Parada 1 de '+(stops.length+1)+': '+n(stops[0]):'🏁 '+n(dest);t+='   ·  ＋ paradas';if($('bDest').textContent!==t){$('bDest').textContent=t;setBH()}}
+$('banner').onclick=function(){if(route)$('addStop').onclick()};
+function navTick(p){if(!route||!p)return;try{destTxt()}catch(e){}try{extras(p)}catch(e){}
   // off-route check
   if(distToLine(p,route.line)>40){offCount++;if(offCount>=2){offCount=0;say('Espere, recalculando la ruta');toast('Recalculando…',2000);navigate(dest.lat,dest.lon,true);return}}else offCount=0;
   var s=steps[nextIdx];if(!s){return}
