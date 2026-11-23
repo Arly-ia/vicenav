@@ -66,6 +66,9 @@ button{font-family:inherit;letter-spacing:.06em;cursor:pointer}
 #hud{left:50% !important;right:auto !important;bottom:auto !important;top:78px;transform:translateX(-50%);padding:6px 18px !important;display:flex;align-items:baseline;gap:8px}
 #hud small{display:inline !important}
 body.nav #searchBox{display:none}
+body.nav.adding #searchBox{display:block !important;z-index:1300}
+body.nav.adding #banner,body.nav.adding #lanes,body.nav.adding #sigBox{display:none !important}
+#addStop{font-size:20px !important;padding:2px 10px !important;border-color:#ffb300 !important;color:#ffb300 !important}
 body.nav #banner{top:10px}
 #hud{display:none !important}
 body.nav #hud{display:flex !important;top:var(--bh,110px)}
@@ -114,7 +117,7 @@ body.nav #stopsBar{display:none !important}
 </div>
 
 <div id="searchBox">
-  <input id="q" type="search" placeholder="¿PA' DÓNDE VAMOS, ARLEY?" autocomplete="off" />
+  <input id="q" type="search" placeholder="¿PA' DÓNDE VAMOS?" autocomplete="off" />
   <div id="results" class="glass"></div>
 </div>
 
@@ -130,7 +133,7 @@ body.nav #stopsBar{display:none !important}
   <div><b id="tMi">0</b><span>MILLAS</span></div>
   <div><b id="tMin">0</b><span>MIN</span></div>
   <div><b id="tEta">--</b><span>LLEGADA</span></div>
-  <button id="stop">✕ PARAR</button>
+  <button id="addStop" title="Agregar parada">＋</button><button id="stop">✕ PARAR</button>
 </div>
 
 <div id="btns">
@@ -290,7 +293,8 @@ function findListOld(v){fetch(GEO+'findAddressCandidates?f=json&maxLocations=5&l
   .then(function(r){return r.json()}).then(function(j){
     listBox((j.candidates||[]).map(function(c){return{text:c.address,pick:function(){showPlace(c.location.y,c.location.x,c.address)}}}))})
   .catch(function(){toast('Error buscando. Revise la conexión.')})}
-function showPlace(lat,lon,name){dest={lat:lat,lon:lon,name:name};
+function showPlace(lat,lon,name){if(adding){adding=false;$('q').placeholder="¿PA' DÓNDE VAMOS?";$('q').value='';document.body.classList.remove('adding');$('results').style.display='none';var fin=finalDest;stops.push({lat:lat,lon:lon,name:name});dest=fin;toast('📍 Parada agregada: '+(name||'').split(',')[0],3000);say('Parada agregada');follow=true;navigate(fin.lat,fin.lon,true);return}
+  dest={lat:lat,lon:lon,name:name};
   var th=/airport|aeropuerto/i.test(name)&&!/terminal|cell/i.test(name)?airportHits(name.indexOf('Sanford')>=0?'sfb':(/orlando/i.test(name)&&!/executive|melbourne|apopka/i.test(name)?'mco':'')):[];
   if(th.length){listBox(th);toast('✈ Elige la terminal',2500)}
   if(destMk)map.removeLayer(destMk);destMk=L.marker([lat,lon],{icon:L.divIcon({className:'',html:'<div class="pinx"></div>',iconSize:[22,22],iconAnchor:[11,11]})}).addTo(map);
@@ -419,7 +423,9 @@ function navTick(p){if(!route||!p)return;try{extras(p)}catch(e){}
 }
 function stopNav(){clearOpts();sigMks.forEach(function(m){map.removeLayer(m)});sigMks=[];sigs=[];limits=[];lanesArr=[];['lim','lanes','sigBox'].forEach(function(i){$(i).style.display='none'});if(map.setBearing)map.setBearing(0);route=null;if(routeLine){map.removeLayer(routeLine);map.removeLayer(glowLine);routeLine=glowLine=null}
   $('banner').style.display='none';$('trip').style.display='none';document.body.classList.remove('nav')}
-$('stop').onclick=function(){stopNav();if(destMk){map.removeLayer(destMk);destMk=null}};
+var adding=false,finalDest=null;
+$('addStop').onclick=function(){if(!route||!dest)return;adding=!adding;document.body.classList.toggle('adding',adding);if(adding){finalDest={lat:dest.lat,lon:dest.lon,name:dest.name};var q=$('q');if(q){q.value='';q.placeholder='DIRECCIÓN DE LA PARADA';q.focus()}toast('Escriba la dirección de la parada',2500)}else $('results').style.display='none'};
+$('stop').onclick=function(){adding=false;document.body.classList.remove('adding');stopNav();if(destMk){map.removeLayer(destMk);destMk=null}};
 
 // ---------- favorites ----------
 function renderFavs(){var box=$('favList');box.innerHTML='';
