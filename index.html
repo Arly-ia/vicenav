@@ -68,6 +68,13 @@ button{font-family:inherit;letter-spacing:.06em;cursor:pointer}
 body.nav #searchBox{display:none}
 body.nav.adding #searchBox{display:block !important;z-index:1300}
 body.nav.adding #banner,body.nav.adding #lanes,body.nav.adding #sigBox{display:none !important}
+#sp{position:fixed;left:10px;right:10px;top:78px;z-index:1400;display:none;padding:10px;max-height:70vh;overflow:auto;font-family:system-ui,sans-serif;letter-spacing:0;border-color:#ffb300}
+#sp .h{font-weight:700;color:#ffb300;margin-bottom:6px}#sp .h small{color:#ccc;font-weight:400}
+#sp .it{display:flex;align-items:center;gap:6px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.15);color:#fff;font-size:15px}
+#sp .it .nm{flex:1}#sp .it .n{min-width:26px;height:26px;border-radius:50%;background:#ffb300;color:#000;font-weight:700;text-align:center;line-height:26px}
+#sp .it .n.f{background:var(--pink);color:#fff}
+#sp .it button{background:none;border:1px solid #fff;color:#fff;border-radius:8px;font-size:16px;padding:4px 9px}
+#sp .row{display:flex;gap:8px;margin-top:10px}
 #addStop{font-size:20px !important;padding:2px 10px !important;border-color:#ffb300 !important;color:#ffb300 !important}
 body.nav #banner{top:10px}
 #hud{display:none !important}
@@ -87,6 +94,7 @@ body:has(#results[style*="block"]) #casaBtn,body:has(#results[style*="block"]) #
 #credit.open .ct{display:inline}
 #credit.open{background:rgba(10,0,20,.85) !important;opacity:1}
 #lim{position:fixed;top:78px;right:10px;z-index:1000;display:none;flex-direction:column;align-items:center;background:#fff;color:#000;border:3px solid #000;outline:2px solid #fff;border-radius:8px;padding:2px 8px;font-family:system-ui,sans-serif;letter-spacing:0;text-align:center}
+#lim.est{opacity:.75;border-style:dashed}
 #lim small{font-size:10px;font-weight:700;line-height:1.05}#lim b{font-size:30px;line-height:1}
 body.nav #lim{top:var(--bh,110px)}
 #hud.over #spd{color:#ff3b3b !important;text-shadow:0 0 10px #ff3b3b !important}
@@ -145,6 +153,8 @@ body.nav #stopsBar{display:none !important}
   <button class="rb" id="bCenter" title="Centrar">◎</button>
 </div>
 
+<div id="sp" class="glass"><div class="h">PARADAS <small>(toque ▲▼ para ordenar)</small></div><div id="spList"></div>
+  <div class="row"><button class="act alt" id="spAdd">＋ AGREGAR</button><button class="act" id="spOk">✓ LISTO</button></div></div>
 <div id="place" class="glass">
   <div class="n" id="pName"></div>
   <div class="row"><button class="act" id="pGo">IR</button><button class="act alt" id="pSave">★ GUARDAR</button></div>
@@ -293,7 +303,7 @@ function findListOld(v){fetch(GEO+'findAddressCandidates?f=json&maxLocations=5&l
   .then(function(r){return r.json()}).then(function(j){
     listBox((j.candidates||[]).map(function(c){return{text:c.address,pick:function(){showPlace(c.location.y,c.location.x,c.address)}}}))})
   .catch(function(){toast('Error buscando. Revise la conexión.')})}
-function showPlace(lat,lon,name){if(adding){adding=false;$('q').placeholder="¿PA' DÓNDE VAMOS?";$('q').value='';document.body.classList.remove('adding');$('results').style.display='none';var fin=finalDest;stops.push({lat:lat,lon:lon,name:name});dest=fin;toast('📍 Parada agregada: '+(name||'').split(',')[0],3000);say('Parada agregada');follow=true;navigate(fin.lat,fin.lon,true);return}
+function showPlace(lat,lon,name){if(adding){adding=false;$('q').placeholder="¿PA' DÓNDE VAMOS?";$('q').value='';document.body.classList.remove('adding');$('results').style.display='none';plan.splice(Math.max(0,plan.length-1),0,{lat:lat,lon:lon,name:name});toast('📍 Agregada. Ordénela y toque LISTO',2500);spOpen();return}
   dest={lat:lat,lon:lon,name:name};
   var th=/airport|aeropuerto/i.test(name)&&!/terminal|cell/i.test(name)?airportHits(name.indexOf('Sanford')>=0?'sfb':(/orlando/i.test(name)&&!/executive|melbourne|apopka/i.test(name)?'mco':'')):[];
   if(th.length){listBox(th);toast('✈ Elige la terminal',2500)}
@@ -363,7 +373,7 @@ function showOpts(all,lat,lon){clearOpts();var box=$('optList');box.innerHTML=''
     d.innerHTML='<b style="color:'+c+'">'+(x.tollMi>0.3?'CON PEAJE':'SIN PEAJE')+(x.min===best?' ⚡':'')+'</b><span>'+x.min+' min · '+x.mi.toFixed(1)+' mi · '+(x.tollMi>0.3?'≈ $'+x.cost.toFixed(2):'$0')+'</span>';
     d.onclick=pick;box.appendChild(d)});
   map.fitBounds(b,{padding:[50,50]});follow=false;$('opts').style.display='block'}
-var limits=[],sigs=[],sigMks=[],lanesArr=[],curIdx=0;
+var mpts=[],mIdx=0,limits=[],sigs=[],sigMks=[],lanesArr=[],curIdx=0;
 function startTrip(trip,lat,lon,re){
     var line=trip.line;
     route={line:line,distance:trip.summary.length*1000,duration:trip.summary.time};
@@ -378,25 +388,28 @@ function startTrip(trip,lat,lon,re){
     $('place').style.display='none';$('banner').style.display='block';$('trip').style.display='flex';document.body.classList.add('nav');$('results').style.display='none';navTick(me);setBH();
     loadAttrs(trip.geometry)}
 function loadAttrs(g){limits=[];sigs=[];sigMks.forEach(function(m){map.removeLayer(m)});sigMks=[];
-  var body={encoded_polyline:g,shape_match:'edge_walk',costing:'auto',filters:{attributes:['edge.speed_limit','edge.begin_shape_index','edge.end_shape_index','node.traffic_signal'],action:'include'}};
-  fetch('https://valhalla1.openstreetmap.de/trace_attributes',{method:'POST',body:JSON.stringify(body)}).then(function(r){return r.json()}).then(function(j){
-    var last=null;(j.edges||[]).forEach(function(e){var sl=e.speed_limit;if(sl&&sl<200){var mph=Math.round(sl/1.609344/5)*5;for(var k=e.begin_shape_index;k<=e.end_shape_index;k++)limits[k]=mph}
-      if(e.end_node&&e.end_node.traffic_signal&&route){var p=route.line[e.end_shape_index];if(p&&(!last||dist(last,p)>40)){last=p;sigs.push({idx:e.end_shape_index,loc:p});
+  var body={encoded_polyline:g,shape_match:'walk_or_snap',costing:'auto',filters:{attributes:['edge.speed_limit','edge.road_class','edge.use','edge.begin_shape_index','edge.end_shape_index','node.traffic_signal','shape'],action:'include'}};
+  fetch('https://valhalla1.openstreetmap.de/trace_attributes',{method:'POST',body:JSON.stringify(body)}).then(function(r){return r.json()}).then(function(j){mpts=j.shape?dec6(j.shape):[];mIdx=0;
+    var EST={motorway:70,trunk:55,primary:45,secondary:45,tertiary:35,unclassified:30,residential:30,service_other:15};var last=null;(j.edges||[]).forEach(function(e){var sl=e.speed_limit,mph=null,es=false;if(sl&&sl<200){mph=Math.round(sl/1.609344/5)*5}else if(e.road_class&&EST[e.road_class]){mph=EST[e.road_class];es=true;if(e.use==='ramp')mph=Math.min(mph,45);if(e.use==='parking_aisle'||e.use==='driveway')mph=10}
+      if(mph)for(var k=e.begin_shape_index;k<=e.end_shape_index;k++)limits[k]={v:mph,e:es}
+      if(e.end_node&&e.end_node.traffic_signal&&route){var p=mpts[e.end_shape_index];if(p&&(!last||dist(last,p)>40)){last=p;sigs.push({idx:e.end_shape_index,loc:p});
         sigMks.push(L.marker(p,{interactive:false,icon:L.divIcon({className:'',html:'<div class="sig">🚦</div>',iconSize:[24,24],iconAnchor:[12,12]})}).addTo(map))}}})}).catch(function(){})}
 function nearIdx(p){var line=route.line,best=1e12,bi=curIdx,a=Math.max(0,curIdx-20),b=Math.min(line.length,curIdx+150);
   for(var k=a;k<b;k++){var d=dist(p,line[k]);if(d<best){best=d;bi=k}}
   if(best>150){for(k=0;k<line.length;k++){d=dist(p,line[k]);if(d<best){best=d;bi=k}}}return bi}
 var ARW={left:'←','slight left':'↖','sharp left':'↰',straight:'↑',right:'→','slight right':'↗','sharp right':'↱',uturn:'↶',none:'↑',merge_to_left:'↖',merge_to_right:'↗'};
 function laneHTML(l){return l.lanes.map(function(x){var a=(x.indications||['none']).map(function(i){return ARW[i]||'↑'}).join('');return '<span class="ln'+(x.valid?' ok':'')+'">'+a+'</span>'}).join('')}
-function extras(p){curIdx=nearIdx(p);
+function nearM(p){var best=1e12,bi=mIdx,a=Math.max(0,mIdx-20),b=Math.min(mpts.length,mIdx+150);for(var k=a;k<b;k++){var d=dist(p,mpts[k]);if(d<best){best=d;bi=k}}
+  if(best>150){for(k=0;k<mpts.length;k++){d=dist(p,mpts[k]);if(d<best){best=d;bi=k}}}mIdx=bi;return bi}
+function extras(p){curIdx=nearIdx(p);var mi=mpts.length?nearM(p):-1;
   // speed limit
-  var lim=limits[curIdx];var sp=parseInt($('spd').textContent)||0;
+  var L0=mi>=0?limits[mi]:null,lim=L0&&L0.v;$('lim').classList.toggle('est',!!(L0&&L0.e));var sp=parseInt($('spd').textContent)||0;
   if(lim){$('lim').style.display='flex';$('limN').textContent=lim;$('hud').classList.toggle('over',sp>lim+5)}else{$('lim').style.display='none';$('hud').classList.remove('over')}
   // lanes: next lane intersection ahead within 400 m
   var show=null;for(var k=0;k<lanesArr.length;k++){var L2=lanesArr[k],d=dist(p,L2.loc);if(d<400){var ii=nearIdx2(L2.loc);if(ii>=curIdx){if(!show||d<show.d)show={l:L2,d:d}}}}
   if(show){$('lanes').innerHTML=laneHTML(show.l);$('lanes').style.display='flex'}else $('lanes').style.display='none';
   // signals
-  var ns=null;for(k=0;k<sigs.length;k++){if(sigs[k].idx>=curIdx){ns=sigs[k];break}}
+  var ns=null;for(k=0;k<sigs.length;k++){if(sigs[k].idx>=mi){ns=sigs[k];break}}
   if(ns){var ds=dist(p,ns.loc);if(ds<250){$('sigBox').style.display='block';$('sigBox').textContent='🚦 '+fmtDist(ds);if(ds<160&&!spoken['s'+ns.idx]){spoken['s'+ns.idx]=1;say('Semáforo adelante')}}else $('sigBox').style.display='none'}else $('sigBox').style.display='none'}
 function nearIdx2(q){var line=route.line,best=1e12,bi=0,a=Math.max(0,curIdx-20),b=Math.min(line.length,curIdx+200);for(var k=a;k<b;k++){var d=dist(q,line[k]);if(d<best){best=d;bi=k}}return best<60?bi:-1}
 function setBH(){var b=$('banner');if(b&&b.offsetHeight)document.documentElement.style.setProperty('--bh',(b.offsetTop+b.offsetHeight+8)+'px')}
@@ -421,11 +434,22 @@ function navTick(p){if(!route||!p)return;try{extras(p)}catch(e){}
   $('tMi').textContent=(rem/1609.34).toFixed(1);$('tMin').textContent=Math.max(1,Math.round(secs/60));
   var eta=new Date(Date.now()+secs*1000);$('tEta').textContent=eta.toLocaleTimeString('es-CO',{hour:'numeric',minute:'2-digit'});
 }
-function stopNav(){clearOpts();sigMks.forEach(function(m){map.removeLayer(m)});sigMks=[];sigs=[];limits=[];lanesArr=[];['lim','lanes','sigBox'].forEach(function(i){$(i).style.display='none'});if(map.setBearing)map.setBearing(0);route=null;if(routeLine){map.removeLayer(routeLine);map.removeLayer(glowLine);routeLine=glowLine=null}
+function stopNav(){clearOpts();sigMks.forEach(function(m){map.removeLayer(m)});sigMks=[];sigs=[];limits=[];mpts=[];lanesArr=[];['lim','lanes','sigBox'].forEach(function(i){$(i).style.display='none'});if(map.setBearing)map.setBearing(0);route=null;if(routeLine){map.removeLayer(routeLine);map.removeLayer(glowLine);routeLine=glowLine=null}
   $('banner').style.display='none';$('trip').style.display='none';document.body.classList.remove('nav')}
-var adding=false,finalDest=null;
-$('addStop').onclick=function(){if(!route||!dest)return;adding=!adding;document.body.classList.toggle('adding',adding);if(adding){finalDest={lat:dest.lat,lon:dest.lon,name:dest.name};var q=$('q');if(q){q.value='';q.placeholder='DIRECCIÓN DE LA PARADA';q.focus()}toast('Escriba la dirección de la parada',2500)}else $('results').style.display='none'};
-$('stop').onclick=function(){adding=false;document.body.classList.remove('adding');stopNav();if(destMk){map.removeLayer(destMk);destMk=null}};
+var adding=false,plan=[];
+function spRender(){var L=$('spList');L.innerHTML='';plan.forEach(function(p,k){var d=document.createElement('div');d.className='it';
+  var last=k===plan.length-1;d.innerHTML='<span class="n'+(last?' f':'')+'">'+(last?'🏁':(k+1))+'</span>';
+  var nm=document.createElement('span');nm.className='nm';nm.textContent=(p.name||'Sin nombre').split(',').slice(0,2).join(',');d.appendChild(nm);
+  [['▲',-1],['▼',1]].forEach(function(b){var bt=document.createElement('button');bt.textContent=b[0];bt.disabled=(k+b[1]<0||k+b[1]>=plan.length);if(bt.disabled)bt.style.opacity=.3;
+    bt.onclick=function(){var t=plan[k];plan[k]=plan[k+b[1]];plan[k+b[1]]=t;spRender()};d.appendChild(bt)});
+  var x=document.createElement('button');x.textContent='✕';x.onclick=function(){plan.splice(k,1);spRender()};if(plan.length<2){x.disabled=true;x.style.opacity=.3}d.appendChild(x);
+  L.appendChild(d)})}
+function spOpen(){$('sp').style.display='block';spRender()}
+$('addStop').onclick=function(){if(!route||!dest)return;plan=stops.map(function(x){return x}).concat([{lat:dest.lat,lon:dest.lon,name:dest.name||'Destino'}]);spOpen()};
+$('spAdd').onclick=function(){$('sp').style.display='none';adding=true;document.body.classList.add('adding');var q=$('q');q.value='';q.placeholder='DIRECCIÓN DE LA PARADA';q.focus()};
+$('spOk').onclick=function(){$('sp').style.display='none';if(!plan.length)return;var f=plan[plan.length-1];stops=plan.slice(0,-1);dest={lat:f.lat,lon:f.lon,name:f.name};
+  if(destMk)destMk.setLatLng([f.lat,f.lon]);follow=true;say(stops.length?'Ruta con '+stops.length+(stops.length>1?' paradas':' parada'):'Ruta actualizada');navigate(f.lat,f.lon,true)};
+$('stop').onclick=function(){adding=false;$('sp').style.display='none';document.body.classList.remove('adding');stopNav();if(destMk){map.removeLayer(destMk);destMk=null}};
 
 // ---------- favorites ----------
 function renderFavs(){var box=$('favList');box.innerHTML='';
