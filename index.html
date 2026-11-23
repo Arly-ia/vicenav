@@ -69,6 +69,8 @@ button{font-family:inherit;letter-spacing:.06em;cursor:pointer}
 body.nav #searchBox{display:none}
 body.nav.adding #searchBox{display:block !important;z-index:1300}
 body.nav.adding #banner,body.nav.adding #lanes,body.nav.adding #sigBox{display:none !important}
+#sp .it .n{font-size:15px}
+.stl{width:30px;height:30px;border-radius:50%;background:#ffb300;color:#000;font:800 17px system-ui,sans-serif;text-align:center;line-height:30px;border:2px solid #fff;box-shadow:0 0 10px #ffb300}
 #sp{position:fixed;left:10px;right:10px;top:78px;z-index:1400;display:none;padding:10px;max-height:70vh;overflow:auto;font-family:system-ui,sans-serif;letter-spacing:0;border-color:#ffb300}
 #sp .h{font-weight:700;color:#ffb300;margin-bottom:6px}#sp .h small{color:#ccc;font-weight:400}
 #sp .it{display:flex;align-items:center;gap:6px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.15);color:#fff;font-size:15px}
@@ -311,7 +313,7 @@ function showPlace(lat,lon,name){if(adding){adding=false;$('q').placeholder="¿P
   if(destMk)map.removeLayer(destMk);destMk=L.marker([lat,lon],{icon:L.divIcon({className:'',html:'<div class="pinx"></div>',iconSize:[22,22],iconAnchor:[11,11]})}).addTo(map);
   follow=false;map.setView([lat,lon],16);$('pName').textContent=name;$('place').style.display='block'}
 function renderStops(){var b=$('stopsBar');if(stops.length&&!route){b.style.display='flex';$('stopsTxt').textContent='📍 '+stops.length+' parada'+(stops.length>1?'s':'')+' + destino'}else b.style.display='none'}
-$('pStop').onclick=function(){if(!dest)return;stops.push({lat:dest.lat,lon:dest.lon,name:dest.name});$('place').style.display='none';toast('📍 Parada '+stops.length+' agregada. Busque la siguiente o el destino final.',3500);renderStops()};
+$('pStop').onclick=function(){if(!dest)return;stops.push({lat:dest.lat,lon:dest.lon,name:dest.name,l:LT(stops.length)});$('place').style.display='none';toast('📍 Parada '+stops.length+' agregada. Busque la siguiente o el destino final.',3500);renderStops()};
 $('stopsClr').onclick=function(){stops=[];renderStops()};
 $('stopsGo').onclick=function(){if(!stops.length)return;var f=stops.pop();dest={lat:f.lat,lon:f.lon,name:f.name};renderStops();navigate(f.lat,f.lon)};
 $('pFly').onclick=function(){var n=prompt('Número de vuelo (ej: AV 2030, AA 1234):','');if(!n)return;n=n.replace(/\s+/g,'').toUpperCase();window.open('https://www.google.com/search?q='+encodeURIComponent(n+' flight status'),'_blank')};
@@ -331,7 +333,9 @@ var route=null,routeLine=null,glowLine=null,steps=[],nextIdx=1,spoken={},offCoun
 var avoidTolls=false;try{avoidTolls=localStorage.getItem('viceNavTolls')==='1'}catch(e){}
 function dec6(str){var idx=0,lat=0,lng=0,out=[];while(idx<str.length){var b,sh=0,r=0;do{b=str.charCodeAt(idx++)-63;r|=(b&31)<<sh;sh+=5}while(b>=32);lat+=(r&1)?~(r>>1):(r>>1);sh=0;r=0;do{b=str.charCodeAt(idx++)-63;r|=(b&31)<<sh;sh+=5}while(b>=32);lng+=(r&1)?~(r>>1):(r>>1);out.push([lat/1e6,lng/1e6])}return out}
 var TOLL_RATE=0.22;var optLines=[];
-var stops=[];
+var stops=[],stopMks=[];
+function LT(k){return String.fromCharCode(65+k)}
+function drawStops(){stopMks.forEach(function(m){map.removeLayer(m)});stopMks=[];stops.forEach(function(x,k){stopMks.push(L.marker([x.lat,x.lon],{interactive:false,icon:L.divIcon({className:'',html:'<div class="stl">'+(x.l||LT(k))+'</div>',iconSize:[30,30],iconAnchor:[15,15]})}).addTo(map))})}
 function locs(lat,lon,re){var o={lat:me[0],lon:me[1]};if(re){o.heading=Math.round(heading);o.heading_tolerance=60}
   return [o].concat(stops.map(function(x){return{lat:x.lat,lon:x.lon,type:'break'}})).concat([{lat:lat,lon:lon}])}
 function convOsrm(r){var line=dec6(r.geometry),st=[],lanes=[],tk=0,nl=r.legs.length;
@@ -340,7 +344,7 @@ function convOsrm(r){var line=dec6(r.geometry),st=[],lanes=[],tk=0,nl=r.legs.len
     (x.intersections||[]).forEach(function(it){if(it.lanes&&it.lanes.length>1)lanes.push({loc:[it.location[1],it.location[0]],lanes:it.lanes})});
     var ty=t==='arrive'?(li===nl-1?4:99):(t==='depart'?(li?98:0):1);
     if(ty===98)return;
-    st.push({loc:[m.location[1],m.location[0]],type:ty,stop:li+1,text:ty===99?'Llegamos a la parada '+(li+1):(m.instruction||''),distance:x.distance})})});
+    st.push({loc:[m.location[1],m.location[0]],type:ty,stop:li+1,text:ty===99?'Llegamos a la parada '+String.fromCharCode(65+li):(m.instruction||''),distance:x.distance})})});
   return{line:line,steps:st,lanes:lanes,geometry:r.geometry,summary:{length:r.distance/1000,time:r.duration},tollM:tk}}
 function fetchTrips(lat,lon,tolls,alts,re){
   var co=tolls?{use_tolls:1}:{exclude_tolls:true,use_tolls:0};
@@ -387,7 +391,7 @@ function startTrip(trip,lat,lon,re){
     if(!re){follow=true;if(me)followTo(me,17);
       say('Hágale pues, vamos'+(avoidTolls?', sin peajes':'')+'. '+instr(steps[1]||steps[0]))}
     $('place').style.display='none';$('banner').style.display='block';$('trip').style.display='flex';document.body.classList.add('nav');$('results').style.display='none';navTick(me);setBH();
-    loadAttrs(trip.geometry)}
+    drawStops();loadAttrs(trip.geometry)}
 function loadAttrs(g){limits=[];sigs=[];sigMks.forEach(function(m){map.removeLayer(m)});sigMks=[];
   var body={encoded_polyline:g,shape_match:'walk_or_snap',costing:'auto',filters:{attributes:['edge.speed_limit','edge.road_class','edge.use','edge.begin_shape_index','edge.end_shape_index','node.traffic_signal','shape'],action:'include'}};
   fetch('https://valhalla1.openstreetmap.de/trace_attributes',{method:'POST',body:JSON.stringify(body)}).then(function(r){return r.json()}).then(function(j){mpts=j.shape?dec6(j.shape):[];mIdx=0;
@@ -418,16 +422,16 @@ function isArrive(s){if(s&&s.type===99)return false;return s&&(s.type===4||s.typ
 function instr(s){if(!s)return'';if(isArrive(s))return'¡Listo, llegamos!';return s.text}
 function instrSoon(s,m){if(isArrive(s))return'En '+m+' metros llegamos';return'En '+m+' metros, '+s.text.charAt(0).toLowerCase()+s.text.slice(1)}
 
-function destTxt(){var n=function(x){return (x&&x.name?x.name:'Destino').split(',').slice(0,2).join(',')};var t=stops.length?'📍 Parada 1 de '+(stops.length+1)+': '+n(stops[0]):'🏁 '+n(dest);t+='   ·  ＋ paradas';if($('bDest').textContent!==t){$('bDest').textContent=t;setBH()}}
+function destTxt(){var n=function(x){return (x&&x.name?x.name:'Destino').split(',').slice(0,2).join(',')};var t=stops.length?'📍 Parada '+(stops[0].l||'A')+' ('+stops.length+(stops.length>1?' paradas':' parada')+'): '+n(stops[0]):'🏁 '+n(dest);t+='   ·  ＋ paradas';if($('bDest').textContent!==t){$('bDest').textContent=t;setBH()}}
 $('banner').onclick=function(){if(route)$('addStop').onclick()};
 function navTick(p){if(!route||!p)return;try{destTxt()}catch(e){}try{extras(p)}catch(e){}
   // off-route check
   if(distToLine(p,route.line)>40){offCount++;if(offCount>=2){offCount=0;say('Espere, recalculando la ruta');toast('Recalculando…',2000);navigate(dest.lat,dest.lon,true);return}}else offCount=0;
   var s=steps[nextIdx];if(!s){return}
   var loc=s.loc;var d=dist(p,loc);
-  if(s.type===99&&d<40){if(!spoken['w'+nextIdx]){spoken['w'+nextIdx]=1;say(s.text);toast('📍 '+s.text,3000);stops.shift();renderStops()}nextIdx++;s=steps[nextIdx];if(!s)return;loc=s.loc;d=dist(p,loc)}
+  if(s.type===99&&d<40){if(!spoken['w'+nextIdx]){spoken['w'+nextIdx]=1;var wt='Llegamos a la parada '+((stops[0]&&stops[0].l)||'');say(wt);toast('📍 '+wt,3000);stops.shift();renderStops();drawStops()}nextIdx++;s=steps[nextIdx];if(!s)return;loc=s.loc;d=dist(p,loc)}
   else if(d<25&&!isArrive(s)){nextIdx++;s=steps[nextIdx];if(!s)return;loc=s.loc;d=dist(p,loc)}
-  if(isArrive(s)&&d<30){say('¡Listo, llegamos!');toast('¡Listo, llegamos! 🌴',4000);stops=[];renderStops();stopNav();return}
+  if(isArrive(s)&&d<30){say('¡Listo, llegamos!');toast('¡Listo, llegamos! 🌴',4000);stops=[];renderStops();drawStops();stopNav();return}
   $('bd').textContent=fmtDist(d);$('bt').textContent=instr(s).toUpperCase();setBH();
   if(d<=320&&d>120&&!spoken[nextIdx+'a']){spoken[nextIdx+'a']=1;say(instrSoon(s,300))}
   if(d<=60&&!spoken[nextIdx+'b']){spoken[nextIdx+'b']=1;say(instr(s))}
@@ -441,7 +445,7 @@ function stopNav(){clearOpts();sigMks.forEach(function(m){map.removeLayer(m)});s
   $('banner').style.display='none';$('trip').style.display='none';document.body.classList.remove('nav')}
 var adding=false,plan=[];
 function spRender(){var L=$('spList');L.innerHTML='';plan.forEach(function(p,k){var d=document.createElement('div');d.className='it';
-  var last=k===plan.length-1;d.innerHTML='<span class="n'+(last?' f':'')+'">'+(last?'🏁':(k+1))+'</span>';
+  var last=k===plan.length-1;d.innerHTML='<span class="n'+(last?' f':'')+'">'+(last?'🏁':LT(k))+'</span>';
   var nm=document.createElement('span');nm.className='nm';nm.textContent=(p.name||'Sin nombre').split(',').slice(0,2).join(',');d.appendChild(nm);
   [['▲',-1],['▼',1]].forEach(function(b){var bt=document.createElement('button');bt.textContent=b[0];bt.disabled=(k+b[1]<0||k+b[1]>=plan.length);if(bt.disabled)bt.style.opacity=.3;
     bt.onclick=function(){var t=plan[k];plan[k]=plan[k+b[1]];plan[k+b[1]]=t;spRender()};d.appendChild(bt)});
@@ -450,7 +454,7 @@ function spRender(){var L=$('spList');L.innerHTML='';plan.forEach(function(p,k){
 function spOpen(){$('sp').style.display='block';spRender()}
 $('addStop').onclick=function(){if(!route||!dest)return;plan=stops.map(function(x){return x}).concat([{lat:dest.lat,lon:dest.lon,name:dest.name||'Destino'}]);spOpen()};
 $('spAdd').onclick=function(){$('sp').style.display='none';adding=true;document.body.classList.add('adding');var q=$('q');q.value='';q.placeholder='DIRECCIÓN DE LA PARADA';q.focus()};
-$('spOk').onclick=function(){$('sp').style.display='none';if(!plan.length)return;var f=plan[plan.length-1];stops=plan.slice(0,-1);dest={lat:f.lat,lon:f.lon,name:f.name};
+$('spOk').onclick=function(){$('sp').style.display='none';if(!plan.length)return;var f=plan[plan.length-1];stops=plan.slice(0,-1);stops.forEach(function(x,k){x.l=LT(k)});dest={lat:f.lat,lon:f.lon,name:f.name};
   if(destMk)destMk.setLatLng([f.lat,f.lon]);follow=true;say(stops.length?'Ruta con '+stops.length+(stops.length>1?' paradas':' parada'):'Ruta actualizada');navigate(f.lat,f.lon,true)};
 $('stop').onclick=function(){adding=false;$('sp').style.display='none';document.body.classList.remove('adding');stopNav();if(destMk){map.removeLayer(destMk);destMk=null}};
 
