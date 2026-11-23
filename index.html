@@ -31,7 +31,17 @@ button{font-family:inherit;letter-spacing:.06em;cursor:pointer}
 #banner .d{font-size:26px;color:var(--orange);text-shadow:0 0 10px var(--orange);line-height:1}
 #banner .t{font-size:16px;line-height:1.15}
 #banner{padding:8px 12px !important}
-#bDest{margin-top:5px;padding-top:5px;border-top:1px solid rgba(255,255,255,.2);font:600 14px system-ui,sans-serif;letter-spacing:0;color:#ffd27a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#pareBox{position:fixed;left:72px;top:calc(var(--bh,110px) + 40px);z-index:1000;display:none;background:#c4001a;border:2px solid #fff;border-radius:10px;padding:6px 8px;font:800 15px system-ui,sans-serif;color:#fff}
+body.nav.adding #pareBox{display:none !important}
+.pare{width:30px;height:30px;background:#c4001a;color:#fff;border:2px solid #fff;font:800 8px/26px system-ui,sans-serif;text-align:center;clip-path:polygon(30% 0,70% 0,100% 30%,100% 70%,70% 100%,30% 100%,0 70%,0 30%);box-shadow:0 0 6px #000}
+.hn{transform:translate(-50%,-50%);display:inline-block;background:rgba(255,255,255,.92);color:#111;font:700 12px system-ui,sans-serif;padding:1px 4px;border-radius:4px;white-space:nowrap}
+.hnD{transform:translate(-50%,-100%);display:inline-block;background:var(--pink);color:#fff;font:800 16px system-ui,sans-serif;padding:4px 8px;border-radius:8px;border:2px solid #fff;white-space:nowrap;box-shadow:0 0 14px var(--pink)}
+.brd{transform:translate(-50%,-50%);display:inline-flex;align-items:center;gap:4px;padding:2px 6px 2px 2px;border-radius:14px;border:2px solid #fff;color:#fff;font:700 11px system-ui,sans-serif;white-space:nowrap;box-shadow:0 0 6px rgba(0,0,0,.7)}
+.brd img{width:20px;height:20px;border-radius:50%;background:#fff}
+body.lowz .brd span{display:none}
+#bArr{float:left;width:58px;height:58px;margin:0 10px 0 0;border-radius:12px;background:var(--orange);color:#12002a;font:900 46px/58px system-ui,sans-serif;text-align:center;box-shadow:0 0 14px rgba(255,138,0,.8)}
+#bArr.big{animation:pulse .8s infinite alternate}@keyframes pulse{to{transform:scale(1.12)}}
+#bDest{clear:both;margin-top:5px;padding-top:5px;border-top:1px solid rgba(255,255,255,.2);font:600 14px system-ui,sans-serif;letter-spacing:0;color:#ffd27a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #radio{position:fixed;left:10px;right:10px;bottom:90px;z-index:2000;display:none;padding:12px;max-height:55vh;overflow:auto}
 #radio h2{margin:0 0 8px;font-weight:400;font-size:26px;color:var(--orange)}
 #radio .st{padding:10px;font-size:18px;border-bottom:1px solid rgba(255,46,136,.35);font-family:system-ui,sans-serif;letter-spacing:0}
@@ -135,10 +145,10 @@ body.nav #stopsBar{display:none !important}
   <div id="results" class="glass"></div>
 </div>
 
-<div id="banner" class="glass"><div class="d" id="bd"></div><div class="t" id="bt"></div><div id="bDest"></div></div>
+<div id="banner" class="glass"><div id="bArr"></div><div class="d" id="bd"></div><div class="t" id="bt"></div><div id="bDest"></div></div>
 
 <div id="lim"><small>SPEED<br>LIMIT</small><b id="limN">--</b></div>
-<div id="lanes"></div><div id="sigBox"></div>
+<div id="lanes"></div><div id="sigBox"></div><div id="pareBox"></div>
 <div id="stopsBar" class="glass"><span id="stopsTxt"></span><button id="stopsGo">IR</button><button id="stopsClr">✕</button></div>
 <div id="hud" class="glass"><div id="spd">0</div><small>MPH</small><small id="acc">± — m</small></div>
 <button id="casaBtn" title="Casa">⌂</button>
@@ -238,12 +248,17 @@ function followTo(p,z,h){if(h==null)h=heading;z=z||map.getZoom();if(headUp&&map.
 var lastME=0;
 function setArrowH(h){var el=document.getElementById('meArrow');if(el)el.style.transform='rotate('+((h+mb())%360)+'deg)'}
 var dp=null,an=null,lastFixT=0,fz=null;
-function animTo(p,h){var now=performance.now();var dur=Math.max(250,Math.min(1200,lastFixT?now-lastFixT:600));lastFixT=now;
-  if(!dp){dp=p.slice();dh=h;return place(dp,dh)}
-  var p0=dp.slice(),h0=dh,dH=((h-h0+540)%360)-180,t0=now;
-  if(dist(p0,p)>300){dp=p.slice();dh=h;return place(dp,dh)}
-  if(an)cancelAnimationFrame(an);
-  (function step(){var k=Math.min(1,(performance.now()-t0)/dur);var e=k;dp=[p0[0]+(p[0]-p0[0])*e,p0[1]+(p[1]-p0[1])*e];dh=(h0+dH*e+360)%360;place(dp,dh);if(k<1)an=requestAnimationFrame(step);else{an=null;map.fire('moveend')}})()}
+var fx=null,loopOn=false,lastFr=0;
+function animTo(p,h,spd){var now=performance.now();
+  if(!dp||dist(dp,p)>300){dp=p.slice();dh=h;fx={p:p,t:now,h:h,v:0};return place(dp,dh)}
+  fx={p:p,t:now,h:h,v:(spd&&spd>1)?spd:0};if(!loopOn){loopOn=true;lastFr=now;an=requestAnimationFrame(loop)}}
+function loop(){var now=performance.now(),dt=Math.min(0.1,(now-lastFr)/1000);lastFr=now;
+  var el=Math.min(1.5,(now-fx.t)/1000);var tgt=fx.v?ahead(fx.p,fx.v*el,fx.h):fx.p;
+  var a=1-Math.exp(-dt/0.35),dH=((fx.h-dh+540)%360)-180;
+  var moved=dist(dp,tgt);
+  if(moved>0.05||Math.abs(dH)>0.3){dp=[dp[0]+(tgt[0]-dp[0])*a,dp[1]+(tgt[1]-dp[1])*a];dh=(dh+dH*Math.min(1,a*1.3)+360)%360;place(dp,dh)}
+  else if(fz){place(dp,dh)}
+  an=requestAnimationFrame(loop)}
 function place(q,h){meMk.setLatLng(q);if(accC)accC.setLatLng(q);if(follow)followTo(q,fz,h);else setArrowH(h);fz=null}
 var fT;map.on('dragstart',function(){follow=false;clearTimeout(fT);fT=setTimeout(function(){if(route){follow=true;if(me)followTo(dp||me,17,dp?dh:heading)}},12000)});
 
@@ -257,7 +272,7 @@ function onFix(pos){var c=pos.coords,now=Date.now();
   else{accC.setRadius(c.accuracy)}
   $('spd').textContent=Math.round((c.speed||0)*2.23694);
   $('acc').textContent='± '+Math.round(c.accuracy)+' m';
-  var nz=(route&&dest&&dist(p,[dest.lat,dest.lon])<500)?19:null;fz=(nz&&map.getZoom()<nz)?nz:null;animTo(p,heading);
+  var nz=(route&&dest&&dist(p,[dest.lat,dest.lon])<500)?19:null;fz=(nz&&map.getZoom()<nz)?nz:null;animTo(p,heading,c.speed);
   if(route)navTick(p);
 }
 function onErr(e){if(e.code===1){toast('No me dio permiso de ubicación. Lo pongo en Kissimmee.',4500);map.setView(KISS,13)}else toast('Buscando señal GPS…')}
@@ -357,7 +372,7 @@ function convOsrm(r){var line=dec6(r.geometry),st=[],lanes=[],tk=0,nl=r.legs.len
     (x.intersections||[]).forEach(function(it){if(it.lanes&&it.lanes.length>1)lanes.push({loc:[it.location[1],it.location[0]],lanes:it.lanes})});
     var ty=t==='arrive'?(li===nl-1?4:99):(t==='depart'?(li?98:0):1);
     if(ty===98)return;
-    st.push({loc:[m.location[1],m.location[0]],type:ty,stop:li+1,text:ty===99?'Llegamos a la parada '+String.fromCharCode(65+li):(m.instruction||''),distance:x.distance})})});
+    st.push({loc:[m.location[1],m.location[0]],type:ty,mt:t,mod:m.modifier||'',stop:li+1,text:ty===99?'Llegamos a la parada '+String.fromCharCode(65+li):(m.instruction||''),distance:x.distance})})});
   return{line:line,steps:st,lanes:lanes,geometry:r.geometry,summary:{length:r.distance/1000,time:r.duration},tollM:tk}}
 function fetchTrips(lat,lon,tolls,alts,re){
   var co=tolls?{use_tolls:1}:{exclude_tolls:true,use_tolls:0};
@@ -404,7 +419,7 @@ function startTrip(trip,lat,lon,re){
     if(!re){follow=true;if(me)followTo(dp||me,17,dp?dh:heading);
       say('Hágale pues, vamos'+(avoidTolls?', sin peajes':'')+'. '+instr(steps[1]||steps[0]))}
     $('place').style.display='none';$('banner').style.display='block';$('trip').style.display='flex';document.body.classList.add('nav');$('results').style.display='none';navTick(me);setBH();
-    drawStops();loadAttrs(trip.geometry)}
+    drawStops();loadAttrs(trip.geometry);loadStops(line);if(!re)loadHN(lat,lon)}
 function loadAttrs(g){limits=[];sigs=[];sigMks.forEach(function(m){map.removeLayer(m)});sigMks=[];
   var body={encoded_polyline:g,shape_match:'walk_or_snap',costing:'auto',filters:{attributes:['edge.speed_limit','edge.road_class','edge.use','edge.begin_shape_index','edge.end_shape_index','node.traffic_signal','shape'],action:'include'}};
   fetch('https://valhalla1.openstreetmap.de/trace_attributes',{method:'POST',body:JSON.stringify(body)}).then(function(r){return r.json()}).then(function(j){mpts=j.shape?dec6(j.shape):[];mIdx=0;
@@ -431,21 +446,22 @@ function extras(p){curIdx=nearIdx(p);var mi=mpts.length?nearM(p):-1;
   if(ns){var ds=dist(p,ns.loc);if(ds<250){$('sigBox').style.display='block';$('sigBox').textContent='🚦 '+fmtDist(ds);if(ds<160&&!spoken['s'+ns.idx]){spoken['s'+ns.idx]=1;say('Semáforo adelante')}}else $('sigBox').style.display='none'}else $('sigBox').style.display='none'}
 function nearIdx2(q){var line=route.line,best=1e12,bi=0,a=Math.max(0,curIdx-20),b=Math.min(line.length,curIdx+200);for(var k=a;k<b;k++){var d=dist(q,line[k]);if(d<best){best=d;bi=k}}return best<60?bi:-1}
 function setBH(){var b=$('banner');if(b&&b.offsetHeight)document.documentElement.style.setProperty('--bh',(b.offsetTop+b.offsetHeight+8)+'px')}
+function arrOf(s){if(!s)return'⬆';if(isArrive(s))return'🏁';if(s.type===99)return'📍';var m=s.mod,t=s.mt;if(t==='roundabout'||t==='rotary'||t==='exit roundabout')return'⟳';if(m==='uturn')return'⮌';return({left:'⬅',right:'➡','slight left':'⬉','slight right':'⬈','sharp left':'↰','sharp right':'↱',straight:'⬆'})[m]||'⬆'}
 function isArrive(s){if(s&&s.type===99)return false;return s&&(s.type===4||s.type===5||s.type===6)}
-function instr(s){if(!s)return'';if(isArrive(s))return'¡Listo, llegamos!';return s.text}
-function instrSoon(s,m){if(isArrive(s))return'En '+m+' metros llegamos';return'En '+m+' metros, '+s.text.charAt(0).toLowerCase()+s.text.slice(1)}
+function instr(s){if(!s)return'';if(isArrive(s)){var sd=sideOf();return (destHN?'Casa '+destHN:'Destino')+(sd?' '+sd:'')}return s.text}
+function instrSoon(s,m){if(isArrive(s)){var sd=sideOf();return'En '+m+' metros llegamos'+(destHN?', casa '+destHN:'')+(sd?', '+sd:'')}return'En '+m+' metros, '+s.text.charAt(0).toLowerCase()+s.text.slice(1)}
 
 function destTxt(){var n=function(x){return (x&&x.name?x.name:'Destino').split(',').slice(0,2).join(',')};var t=stops.length?'📍 Parada '+(stops[0].l||'A')+' ('+stops.length+(stops.length>1?' paradas':' parada')+'): '+n(stops[0]):'🏁 '+n(dest);t+='   ·  ＋ paradas';if($('bDest').textContent!==t){$('bDest').textContent=t;setBH()}}
 $('banner').onclick=function(){if(route)$('addStop').onclick()};
-function navTick(p){if(!route||!p)return;try{destTxt()}catch(e){}try{extras(p)}catch(e){}
+function navTick(p){if(!route||!p)return;try{destTxt()}catch(e){}try{extras(p)}catch(e){}try{stopTick(p)}catch(e){}
   // off-route check
   if(distToLine(p,route.line)>40){offCount++;if(offCount>=2){offCount=0;say('Espere, recalculando la ruta');toast('Recalculando…',2000);navigate(dest.lat,dest.lon,true);return}}else offCount=0;
   var s=steps[nextIdx];if(!s){return}
   var loc=s.loc;var d=dist(p,loc);
   if(s.type===99&&d<40){if(!spoken['w'+nextIdx]){spoken['w'+nextIdx]=1;var wt='Llegamos a la parada '+((stops[0]&&stops[0].l)||'');say(wt);toast('📍 '+wt,3000);stops.shift();renderStops();drawStops()}nextIdx++;s=steps[nextIdx];if(!s)return;loc=s.loc;d=dist(p,loc)}
   else if(d<25&&!isArrive(s)){nextIdx++;s=steps[nextIdx];if(!s)return;loc=s.loc;d=dist(p,loc)}
-  if(isArrive(s)&&d<30){say('¡Listo, llegamos!');toast('¡Listo, llegamos! 🌴',4000);stops=[];renderStops();drawStops();stopNav();return}
-  $('bd').textContent=fmtDist(d);$('bt').textContent=instr(s).toUpperCase();setBH();
+  if(isArrive(s)&&d<30){var sd=sideOf();say('¡Listo, llegamos!'+(destHN?' La casa '+destHN+(sd?' queda '+sd:''):(sd?' Queda '+sd:'')));toast('¡Listo, llegamos! 🌴',4000);stops=[];renderStops();drawStops();stopNav();return}
+  $('bArr').textContent=arrOf(s);$('bArr').classList.toggle('big',d<100);$('bd').textContent=fmtDist(d);$('bt').textContent=instr(s).toUpperCase();setBH();
   if(d<=320&&d>120&&!spoken[nextIdx+'a']){spoken[nextIdx+'a']=1;say(instrSoon(s,300))}
   if(d<=60&&!spoken[nextIdx+'b']){spoken[nextIdx+'b']=1;say(instr(s))}
   // remaining
@@ -454,8 +470,48 @@ function navTick(p){if(!route||!p)return;try{destTxt()}catch(e){}try{extras(p)}c
   $('tMi').textContent=(rem/1609.34).toFixed(1);$('tMin').textContent=Math.max(1,Math.round(secs/60));
   var eta=new Date(Date.now()+secs*1000);$('tEta').textContent=eta.toLocaleTimeString('es-CO',{hour:'numeric',minute:'2-digit'});
 }
-function stopNav(){clearOpts();sigMks.forEach(function(m){map.removeLayer(m)});sigMks=[];sigs=[];limits=[];mpts=[];lanesArr=[];['lim','lanes','sigBox'].forEach(function(i){$(i).style.display='none'});if(map.setBearing)map.setBearing(0);route=null;if(routeLine){map.removeLayer(routeLine);map.removeLayer(glowLine);routeLine=glowLine=null}
+function stopNav(){clearOpts();sigMks.forEach(function(m){map.removeLayer(m)});sigMks=[];sigs=[];limits=[];mpts=[];lanesArr=[];stopMk2.forEach(function(m){map.removeLayer(m)});stopMk2=[];stopSigns=[];hnMk.forEach(function(m){map.removeLayer(m)});hnMk=[];destHN='';['lim','lanes','sigBox','pareBox'].forEach(function(i){$(i).style.display='none'});if(map.setBearing)map.setBearing(0);route=null;if(routeLine){map.removeLayer(routeLine);map.removeLayer(glowLine);routeLine=glowLine=null}
   $('banner').style.display='none';$('trip').style.display='none';document.body.classList.remove('nav')}
+
+// ---------- Overpass: PARE, numeros de casa, tiendas ----------
+var OVP='https://overpass-api.de/api/interpreter';
+function ovp1(u,q){return fetch(u,{method:'POST',body:'data='+encodeURIComponent('[out:json][timeout:25];'+q)}).then(function(r){if(!r.ok)throw 0;return r.json()})}
+function ovp(q){return ovp1(OVP,q).catch(function(){return ovp1('https://overpass.private.coffee/api/interpreter',q)})}
+var stopSigns=[],stopMk2=[];
+function loadStops(line){stopMk2.forEach(function(m){map.removeLayer(m)});stopMk2=[];stopSigns=[];
+  var pts=[],last=null;line.forEach(function(p){if(!last||dist(last,p)>120){pts.push(p);last=p}});pts.push(line[line.length-1]);pts=pts.slice(0,400);
+  var poly=pts.map(function(p){return p[0].toFixed(5)+','+p[1].toFixed(5)}).join(',');
+  ovp('node[highway=stop](around:18,'+poly+');out;').then(function(j){(j.elements||[]).forEach(function(e){if(!route)return;var p=[e.lat,e.lon];
+      var bi=-1,bd=1e9;for(var k=0;k<route.line.length;k++){var d=dist(p,route.line[k]);if(d<bd){bd=d;bi=k}}if(bd>25)return;
+      if(stopSigns.some(function(x){return dist(x.loc,p)<25}))return;
+      stopSigns.push({idx:bi,loc:p});stopMk2.push(L.marker(p,{interactive:false,icon:L.divIcon({className:'',html:'<div class="pare">PARE</div>',iconSize:[34,34],iconAnchor:[17,17]})}).addTo(map))});
+    stopSigns.sort(function(a,b){return a.idx-b.idx})}).catch(function(){})}
+function stopTick(p){var ns=null;for(var k=0;k<stopSigns.length;k++){if(stopSigns[k].idx>=curIdx){ns=stopSigns[k];break}}
+  if(!ns){$('pareBox').style.display='none';return}var d=dist(p,ns.loc);
+  if(d<250){$('pareBox').style.display='block';$('pareBox').textContent='PARE '+fmtDist(d);if(d<120&&!spoken['p'+ns.idx]){spoken['p'+ns.idx]=1;say('Pare adelante')}}else $('pareBox').style.display='none'}
+var hnMk=[],destHN='';
+function hnOf(n){var m=(n||'').match(/(?:^|,\s*)(\d+[A-Za-z]?)\s+[A-Za-z]/);return m?m[1]:''}
+function loadHN(lat,lon){hnMk.forEach(function(m){map.removeLayer(m)});hnMk=[];destHN=hnOf(dest&&dest.name);
+  if(destHN&&destMk)destMk.setIcon(L.divIcon({className:'',html:'<div class="hnD">🏠 '+destHN+'</div>',iconSize:[0,0]}));
+  ovp('nwr["addr:housenumber"](around:180,'+lat+','+lon+');out center;').then(function(j){(j.elements||[]).forEach(function(e){var la=e.lat||(e.center&&e.center.lat),lo=e.lon||(e.center&&e.center.lon);if(!la)return;
+    var n=e.tags['addr:housenumber'];var me2=destHN&&n===destHN;
+    if(me2&&destMk){destMk.setLatLng([la,lo]);return}
+    hnMk.push(L.marker([la,lo],{interactive:false,icon:L.divIcon({className:'',html:'<div class="hn">'+n+'</div>',iconSize:[0,0]})}).addTo(map))})}).catch(function(){})}
+function sideOf(){var s=steps[steps.length-1];if(!s)return'';return s.mod==='right'?'a la derecha':s.mod==='left'?'a la izquierda':''}
+// tiendas
+var BR=[{k:'cvs',re:/^cvs/i,c:'#cc0000',d:'cvs.com',n:'CVS'},{k:'hd',re:/home depot/i,c:'#f96302',d:'homedepot.com',n:'Home Depot'},{k:'wm',re:/^walmart/i,c:'#0071ce',d:'walmart.com',n:'Walmart'},{k:'al',re:/^aldi/i,c:'#00005f',d:'aldi.us',n:'Aldi'},{k:'pb',re:/^publix/i,c:'#3f8f29',d:'publix.com',n:'Publix'},{k:'ps',re:/^petsmart/i,c:'#e31837',d:'petsmart.com',n:'PetSmart'}];
+var storeDone={},storeLayer=L.layerGroup().addTo(map),storeSeen={};
+function brOf(t){var n=(t.brand||t.name||'');for(var i=0;i<BR.length;i++)if(BR[i].re.test(n))return BR[i];return null}
+function loadStores(){if(map.getZoom()<11)return;var c=map.getCenter(),gx=Math.floor(c.lat*5),gy=Math.floor(c.lng*5),key=gx+'_'+gy;if(storeDone[key])return;storeDone[key]=1;
+  var s=gx/5-0.1,w=gy/5-0.1,n=gx/5+0.3,e=gy/5+0.3;
+  ovp('nwr["name"~"^(CVS|The Home Depot|Home Depot|Walmart|ALDI|Aldi|Publix|PetSmart)",i]["shop"]('+s+','+w+','+n+','+e+');nwr["name"~"^CVS",i]["amenity"="pharmacy"]('+s+','+w+','+n+','+e+');out center;').then(function(j){(j.elements||[]).forEach(function(el){
+    var b=brOf(el.tags||{});if(!b)return;if(/liquor|fuel|gas|pharmacy/i.test(el.tags.name||'')&&b.k!=='cvs')return;
+    var la=el.lat||(el.center&&el.center.lat),lo=el.lon||(el.center&&el.center.lon);if(!la)return;var id=b.k+Math.round(la*2000)+'_'+Math.round(lo*2000);if(storeSeen[id])return;storeSeen[id]=1;
+    var html='<div class="brd" style="background:'+b.c+'"><img src="https://www.google.com/s2/favicons?domain='+b.d+'&sz=64" alt=""><span>'+b.n+'</span></div>';
+    L.marker([la,lo],{icon:L.divIcon({className:'',html:html,iconSize:[0,0]})}).on('click',function(){showPlace(la,lo,(el.tags.name||b.n)+(el.tags['addr:street']?', '+(el.tags['addr:housenumber']||'')+' '+el.tags['addr:street']:''))}).addTo(storeLayer)})}).catch(function(){storeDone[key]=0})}
+setTimeout(function(){toast('Vice Nav v8',2000)},900);
+var stT;map.on('moveend',function(){clearTimeout(stT);stT=setTimeout(loadStores,1500)});setTimeout(loadStores,2500);
+map.on('zoomend',function(){var z=map.getZoom();document.body.classList.toggle('lowz',z<13)});
 var adding=false,plan=[];
 function spRender(){var L=$('spList');L.innerHTML='';plan.forEach(function(p,k){var d=document.createElement('div');d.className='it';
   var last=k===plan.length-1;d.innerHTML='<span class="n'+(last?' f':'')+'">'+(last?'🏁':LT(k))+'</span>';
