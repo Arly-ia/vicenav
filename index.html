@@ -1,0 +1,292 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+<meta name="theme-color" content="#12002a" />
+<title>Vice Nav</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bebas+Neue&display=swap" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<style>
+:root{--bg:#12002a;--pink:#ff2e88;--orange:#ff8a00;--cyan:#00e5ff}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0;width:100vw;height:100vh;overflow:hidden;background:var(--bg);font-family:'Bebas Neue',Impact,sans-serif;color:#fff;letter-spacing:.04em}
+#map{position:fixed;inset:0;width:100vw;height:100vh;background:var(--bg)}
+.leaflet-control-attribution{display:none}
+button{font-family:inherit;letter-spacing:.06em;cursor:pointer}
+.glass{background:rgba(18,0,42,.86);border:2px solid var(--pink);box-shadow:0 0 12px rgba(255,46,136,.6),inset 0 0 10px rgba(255,46,136,.25);border-radius:14px}
+#splash{position:fixed;inset:0;z-index:2000;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:28px;background:radial-gradient(circle at 50% 75%,#ff2e8855 0,transparent 55%),linear-gradient(180deg,#12002a 0%,#2a0050 60%,#ff2e8833 100%)}
+#splash h1{margin:0;font-size:22vw;line-height:.9;font-weight:400;background:linear-gradient(180deg,#ffe04a 0%,var(--orange) 40%,var(--pink) 75%,#a100ff 100%);-webkit-background-clip:text;background-clip:text;color:#ff8a00;-webkit-text-fill-color:transparent;filter:drop-shadow(0 0 18px rgba(255,46,136,.8));text-align:center}
+#splash p{margin:0;color:var(--cyan);font-size:22px;text-shadow:0 0 10px var(--cyan)}
+#go{font-size:34px;padding:14px 34px;color:#fff;background:linear-gradient(90deg,var(--orange),var(--pink));border:none;border-radius:40px;box-shadow:0 0 24px var(--pink)}
+#searchBox{position:fixed;top:10px;left:10px;right:10px;z-index:1000}
+#q{width:100%;font-family:inherit;font-size:22px;letter-spacing:.05em;padding:12px 16px;color:#fff;background:rgba(18,0,42,.9);border:2px solid var(--cyan);border-radius:14px;box-shadow:0 0 12px rgba(0,229,255,.6);outline:none}
+#q::placeholder{color:#9fd}
+#results{margin-top:6px;max-height:45vh;overflow:auto;display:none}
+#results div{padding:12px 14px;font-size:18px;border-bottom:1px solid rgba(255,46,136,.35);font-family:system-ui,sans-serif;letter-spacing:0}
+#results div:last-child{border-bottom:none}
+#banner{position:fixed;top:70px;left:10px;right:10px;z-index:999;display:none;padding:12px 16px;border-color:var(--orange);box-shadow:0 0 16px rgba(255,138,0,.7)}
+#banner .d{font-size:40px;color:var(--orange);text-shadow:0 0 10px var(--orange);line-height:1}
+#banner .t{font-size:24px}
+#hud{position:fixed;left:10px;bottom:16px;z-index:1000;padding:8px 14px;text-align:center;border-color:var(--cyan);box-shadow:0 0 12px rgba(0,229,255,.6)}
+#spd{font-size:46px;line-height:1;color:var(--cyan);text-shadow:0 0 10px var(--cyan)}
+#hud small{display:block;font-size:15px;color:#cfe}
+#btns{position:fixed;right:10px;bottom:16px;z-index:1000;display:flex;flex-direction:column;gap:10px}
+.rb{width:56px;height:56px;font-size:18px;color:#fff;background:rgba(18,0,42,.9);border:2px solid var(--pink);border-radius:50%;box-shadow:0 0 12px rgba(255,46,136,.7)}
+.rb.off{border-color:#666;box-shadow:none;color:#888}
+#casaBtn{position:fixed;left:10px;bottom:120px;z-index:1000;padding:10px 16px;font-size:22px;color:#fff;background:linear-gradient(90deg,var(--orange),var(--pink));border:none;border-radius:12px;box-shadow:0 0 14px var(--pink);display:none}
+#trip{position:fixed;left:104px;right:76px;bottom:16px;z-index:1000;display:none;padding:8px 10px;gap:8px;align-items:center;justify-content:space-around;flex-wrap:wrap;text-align:center}
+#trip b{display:block;font-size:28px;font-weight:400;color:var(--pink);text-shadow:0 0 8px var(--pink);line-height:1}
+#trip span{font-size:13px;color:#ddd}
+#trip button{font-size:16px;padding:6px 10px;background:none;color:#fff;border:1px solid #fff;border-radius:8px}
+#place{position:fixed;left:10px;right:10px;bottom:90px;z-index:1001;display:none;padding:12px}
+#place .n{font-family:system-ui,sans-serif;letter-spacing:0;font-size:15px;margin-bottom:10px}
+.row{display:flex;gap:10px}
+.act{flex:1;font-size:24px;padding:10px;color:#fff;background:linear-gradient(90deg,var(--orange),var(--pink));border:none;border-radius:10px}
+.act.alt{background:none;border:2px solid var(--cyan);color:var(--cyan)}
+#favs{position:fixed;top:70px;left:10px;right:10px;bottom:90px;z-index:1500;display:none;padding:14px;overflow:auto}
+#favs h2{margin:0 0 10px;font-weight:400;font-size:32px;color:var(--orange);text-shadow:0 0 8px var(--orange)}
+.fav{display:flex;align-items:center;gap:8px;padding:10px 0;border-bottom:1px solid rgba(255,46,136,.35)}
+.fav .nm{flex:1;font-size:24px}
+.fav .nm small{display:block;font-family:system-ui,sans-serif;letter-spacing:0;font-size:12px;color:#bbb}
+.fav button{font-size:18px;padding:8px 12px;border-radius:8px;border:2px solid var(--pink);background:none;color:#fff}
+#toast{position:fixed;left:50%;top:45%;transform:translate(-50%,-50%);z-index:3000;display:none;padding:14px 20px;font-size:22px;text-align:center;max-width:86vw}
+#credit{position:fixed;left:0;right:0;bottom:0;z-index:999;padding:3px 6px;text-align:center;font-family:system-ui,sans-serif;letter-spacing:0;font-size:12px;color:#e6dcef;background:rgba(18,0,42,.8)}
+#hud,#btns,#trip{bottom:30px !important}
+.me{width:44px;height:44px;display:flex;align-items:center;justify-content:center;filter:drop-shadow(0 0 6px #00e5ff)}
+.pinx{width:22px;height:22px;border-radius:50%;background:var(--pink);border:3px solid #fff;box-shadow:0 0 14px var(--pink)}
+</style>
+</head>
+<body>
+<div id="map"></div>
+
+<div id="splash">
+  <h1>VICE NAV</h1>
+  <p>Bienvenido, Arley</p>
+  <button id="go">¡HÁGALE PUES!</button>
+</div>
+
+<div id="searchBox">
+  <input id="q" type="search" placeholder="¿PA' DÓNDE VAMOS, ARLEY?" autocomplete="off" />
+  <div id="results" class="glass"></div>
+</div>
+
+<div id="banner" class="glass"><div class="d" id="bd"></div><div class="t" id="bt"></div></div>
+
+<div id="hud" class="glass"><div id="spd">0</div><small>MPH</small><small id="acc">± — m</small></div>
+<button id="casaBtn">⌂ CASA</button>
+
+<div id="trip" class="glass">
+  <div><b id="tMi">0</b><span>MILLAS</span></div>
+  <div><b id="tMin">0</b><span>MIN</span></div>
+  <div><b id="tEta">--</b><span>LLEGADA</span></div>
+  <button id="stop">✕ PARAR</button>
+</div>
+
+<div id="btns">
+  <button class="rb" id="bFav" title="Favoritos">★</button>
+  <button class="rb" id="bMute" title="Voz">🔊</button>
+  <button class="rb" id="bFull" title="Pantalla completa">⛶</button>
+  <button class="rb" id="bCenter" title="Centrar">◎</button>
+</div>
+
+<div id="place" class="glass">
+  <div class="n" id="pName"></div>
+  <div class="row"><button class="act" id="pGo">IR</button><button class="act alt" id="pSave">★ GUARDAR</button></div>
+</div>
+
+<div id="favs" class="glass">
+  <h2>FAVORITOS</h2>
+  <div id="favList"></div>
+  <p style="font-family:system-ui,sans-serif;letter-spacing:0;font-size:12px;color:#bbb">Mantenga presionado el mapa para soltar un pin y guardarlo.</p>
+  <button class="act alt" id="favClose" style="width:100%;margin-top:8px">CERRAR</button>
+</div>
+
+<div id="toast" class="glass"></div>
+<div id="credit">Mapas © Esri · Rutas OSRM</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+(function(){
+var $=function(id){return document.getElementById(id)};
+var KISS=[28.2920,-81.3500];
+var map=L.map('map',{zoomControl:false,attributionControl:true}).setView(KISS,13);
+var ESRI='https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/';
+L.tileLayer(ESRI+'World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}',{attribution:'Tiles © Esri',maxZoom:19,maxNativeZoom:16}).addTo(map);
+L.tileLayer(ESRI+'World_Dark_Gray_Reference/MapServer/tile/{z}/{y}/{x}',{attribution:'Tiles © Esri',maxZoom:19,maxNativeZoom:16}).addTo(map);
+
+// ---------- toast ----------
+var tT;function toast(m,ms){var t=$('toast');t.textContent=m;t.style.display='block';clearTimeout(tT);tT=setTimeout(function(){t.style.display='none'},ms||3000)}
+
+// ---------- voice ----------
+var muted=false,voice=null;
+function pickVoice(){if(!window.speechSynthesis)return;var vs=speechSynthesis.getVoices();var pref=['es-CO','es-US','es-MX','es-ES'];
+  for(var i=0;i<pref.length;i++){var v=vs.find(function(x){return x.lang&&x.lang.replace('_','-').toLowerCase()===pref[i].toLowerCase()});if(v){voice=v;return}}
+  voice=vs.find(function(x){return x.lang&&x.lang.toLowerCase().indexOf('es')===0})||null}
+if(window.speechSynthesis){pickVoice();speechSynthesis.onvoiceschanged=pickVoice}
+function say(txt){if(muted||!window.speechSynthesis)return;try{speechSynthesis.cancel();var u=new SpeechSynthesisUtterance(txt);u.lang=voice?voice.lang:'es-CO';if(voice)u.voice=voice;u.rate=1;speechSynthesis.speak(u)}catch(e){}}
+
+// ---------- storage ----------
+var mem=null;
+function loadFavs(){try{var s=localStorage.getItem('viceNavFavs');if(s)return JSON.parse(s)}catch(e){if(mem)return mem}
+  return mem||[{name:'Casa',addr:'2125 Sailing Way, Kissimmee, FL 34744',lat:28.257470,lon:-81.358189,home:true}]}
+var favs=loadFavs();
+(function(){var h=favs.find(function(f){return f.home});
+  if(!h){favs.unshift({name:'Casa',addr:'2125 Sailing Way, Kissimmee, FL 34744',lat:28.257470,lon:-81.358189,home:true})}
+  else if(h.lat==null){h.lat=28.257470;h.lon=-81.358189;h.addr=h.addr||'2125 Sailing Way, Kissimmee, FL 34744'}
+  try{localStorage.setItem('viceNavFavs',JSON.stringify(favs))}catch(e){}})();
+function saveFavs(){mem=favs;try{localStorage.setItem('viceNavFavs',JSON.stringify(favs))}catch(e){}renderFavs();updateCasa()}
+function home(){return favs.find(function(f){return f.home})}
+function updateCasa(){var h=home();$('casaBtn').style.display=(h&&h.lat!=null)?'block':'none'}
+
+// ---------- geo utils ----------
+var R=6371000;function rad(d){return d*Math.PI/180}
+function dist(a,b){var dLa=rad(b[0]-a[0]),dLo=rad(b[1]-a[1]);var h=Math.sin(dLa/2)*Math.sin(dLa/2)+Math.cos(rad(a[0]))*Math.cos(rad(b[0]))*Math.sin(dLo/2)*Math.sin(dLo/2);return 2*R*Math.asin(Math.sqrt(h))}
+function bearing(a,b){var y=Math.sin(rad(b[1]-a[1]))*Math.cos(rad(b[0]));var x=Math.cos(rad(a[0]))*Math.sin(rad(b[0]))-Math.sin(rad(a[0]))*Math.cos(rad(b[0]))*Math.cos(rad(b[1]-a[1]));return (Math.atan2(y,x)*180/Math.PI+360)%360}
+function distToLine(p,line){var best=1e12,k=Math.cos(rad(p[0]));
+  for(var i=0;i<line.length-1;i++){var ax=(line[i][1]-p[1])*k,ay=line[i][0]-p[0],bx=(line[i+1][1]-p[1])*k,by=line[i+1][0]-p[0];
+    var dx=bx-ax,dy=by-ay,l=dx*dx+dy*dy,t=l?Math.max(0,Math.min(1,-(ax*dx+ay*dy)/l)):0;var cx=ax+t*dx,cy=ay+t*dy;var d=Math.sqrt(cx*cx+cy*cy)*111320;if(d<best)best=d}
+  return best}
+function fmtDist(m){var ft=m*3.28084;if(ft<1000)return Math.round(ft/50)*50+' PIES';return (m/1609.34).toFixed(1)+' MI'}
+
+// ---------- me marker ----------
+var me=null,meMk=null,accC=null,heading=0,lastGood=null,follow=true;
+var arrowIcon=L.divIcon({className:'',iconSize:[44,44],iconAnchor:[22,22],html:'<div class="me" id="meArrow"><svg width="34" height="34" viewBox="0 0 24 24"><path d="M12 2 L20 21 L12 16.5 L4 21 Z" fill="#00e5ff" stroke="#fff" stroke-width="1.5" stroke-linejoin="round"/></svg></div>'});
+function setArrow(){var el=document.getElementById('meArrow');if(el)el.style.transform='rotate('+heading+'deg)'}
+map.on('dragstart',function(){follow=false});
+
+function onFix(pos){var c=pos.coords,now=Date.now();
+  if(c.accuracy>50&&lastGood&&now-lastGood<10000)return;
+  if(c.accuracy<=50)lastGood=now;
+  var p=[c.latitude,c.longitude];
+  if(c.heading!=null&&!isNaN(c.heading)&&c.speed>0.5)heading=c.heading;else if(me&&dist(me,p)>3)heading=bearing(me,p);
+  me=p;
+  if(!meMk){meMk=L.marker(p,{icon:arrowIcon,zIndexOffset:1000}).addTo(map);accC=L.circle(p,{radius:c.accuracy,color:'#00e5ff',weight:1,fillColor:'#00e5ff',fillOpacity:.12}).addTo(map);map.setView(p,16)}
+  else{meMk.setLatLng(p);accC.setLatLng(p).setRadius(c.accuracy)}
+  setArrow();
+  $('spd').textContent=Math.round((c.speed||0)*2.23694);
+  $('acc').textContent='± '+Math.round(c.accuracy)+' m';
+  if(follow)map.panTo(p,{animate:true});
+  if(route)navTick(p);
+}
+function onErr(e){if(e.code===1){toast('Ey Arley, no me dio permiso de ubicación. Lo pongo en Kissimmee.',4500);map.setView(KISS,13)}else toast('Buscando señal GPS…')}
+function startGPS(){if(!navigator.geolocation){toast('Este teléfono no tiene GPS disponible');map.setView(KISS,13);return}
+  navigator.geolocation.watchPosition(onFix,onErr,{enableHighAccuracy:true,maximumAge:0,timeout:20000})}
+
+// ---------- splash ----------
+$('go').onclick=function(){$('splash').style.display='none';
+  if(window.speechSynthesis){try{var u=new SpeechSynthesisUtterance('Hágale pues, Arley');u.lang=voice?voice.lang:'es-CO';if(voice)u.voice=voice;speechSynthesis.speak(u)}catch(e){}}
+  startGPS()};
+
+// ---------- search ----------
+var sT,dest=null,destMk=null;
+var GEO='https://geocode.arcgis.com/arcgis/rest/services/World/GeocodeServer/';
+function locStr(){var p=me||KISS;return p[1]+','+p[0]}
+$('q').addEventListener('input',function(){clearTimeout(sT);var v=this.value.trim();if(v.length<3){$('results').style.display='none';return}
+  sT=setTimeout(function(){search(v)},600)});
+$('q').addEventListener('keydown',function(e){if(e.key==='Enter'){e.preventDefault();clearTimeout(sT);var v=this.value.trim();if(v)findList(v)}});
+function listBox(items){var box=$('results');box.innerHTML='';
+  if(!items.length){box.innerHTML='<div>No encontré nada, Arley</div>'}
+  items.forEach(function(it){var d=document.createElement('div');d.textContent=it.text;d.onclick=function(){box.style.display='none';$('q').blur();it.pick()};box.appendChild(d)});
+  box.style.display='block'}
+function search(v){fetch(GEO+'suggest?f=json&maxSuggestions=6&countryCode=USA&location='+locStr()+'&text='+encodeURIComponent(v))
+  .then(function(r){return r.json()}).then(function(j){
+    listBox((j.suggestions||[]).map(function(s){return{text:s.text,pick:function(){pickSuggest(s)}}}))})
+  .catch(function(){toast('Error buscando. Revise la conexión.')})}
+function pickSuggest(s){fetch(GEO+'findAddressCandidates?f=json&maxLocations=1&SingleLine='+encodeURIComponent(s.text)+'&magicKey='+encodeURIComponent(s.magicKey))
+  .then(function(r){return r.json()}).then(function(j){var c=(j.candidates||[])[0];
+    if(!c){toast('No encontré nada, Arley');return}showPlace(c.location.y,c.location.x,c.address||s.text)})
+  .catch(function(){toast('Error buscando. Revise la conexión.')})}
+function findList(v){fetch(GEO+'findAddressCandidates?f=json&maxLocations=5&location='+locStr()+'&SingleLine='+encodeURIComponent(v))
+  .then(function(r){return r.json()}).then(function(j){
+    listBox((j.candidates||[]).map(function(c){return{text:c.address,pick:function(){showPlace(c.location.y,c.location.x,c.address)}}}))})
+  .catch(function(){toast('Error buscando. Revise la conexión.')})}
+function showPlace(lat,lon,name){dest={lat:lat,lon:lon,name:name};
+  if(destMk)map.removeLayer(destMk);destMk=L.marker([lat,lon],{icon:L.divIcon({className:'',html:'<div class="pinx"></div>',iconSize:[22,22],iconAnchor:[11,11]})}).addTo(map);
+  follow=false;map.setView([lat,lon],16);$('pName').textContent=name;$('place').style.display='block'}
+$('pGo').onclick=function(){$('place').style.display='none';if(dest)navigate(dest.lat,dest.lon)};
+$('pSave').onclick=function(){if(!dest)return;var n=prompt('Nombre para este lugar:',(dest.name||'').split(',')[0]);if(!n)return;
+  favs.push({name:n,addr:dest.name,lat:dest.lat,lon:dest.lon});saveFavs();toast('★ Guardado: '+n)};
+map.on('click',function(){$('results').style.display='none'});
+
+// long-press to drop a pin
+map.on('contextmenu',function(e){showPlace(e.latlng.lat,e.latlng.lng,'Pin '+e.latlng.lat.toFixed(5)+', '+e.latlng.lng.toFixed(5))});
+
+// ---------- routing ----------
+var route=null,routeLine=null,glowLine=null,steps=[],nextIdx=1,spoken={},offCount=0,routing=false;
+function navigate(lat,lon,re){if(!me){toast('Esperando su ubicación GPS, Arley…');return}
+  if(routing)return;routing=true;dest=dest&&dest.lat===lat&&dest.lon===lon?dest:{lat:lat,lon:lon,name:''};
+  var url='https://router.project-osrm.org/route/v1/driving/'+me[1]+','+me[0]+';'+lon+','+lat+'?overview=full&geometries=geojson&steps=true';
+  fetch(url).then(function(r){return r.json()}).then(function(j){routing=false;
+    if(!j.routes||!j.routes.length){toast('No encontré ruta, Arley');return}
+    route=j.routes[0];var line=route.geometry.coordinates.map(function(c){return [c[1],c[0]]});route.line=line;
+    if(routeLine){map.removeLayer(routeLine);map.removeLayer(glowLine)}
+    glowLine=L.polyline(line,{color:'#ff2e88',weight:16,opacity:.25}).addTo(map);
+    routeLine=L.polyline(line,{color:'#ff2e88',weight:6,opacity:1}).addTo(map);
+    steps=route.legs[0].steps;nextIdx=1;spoken={};offCount=0;
+    if(destMk)destMk.setLatLng([lat,lon]);else destMk=L.marker([lat,lon],{icon:L.divIcon({className:'',html:'<div class="pinx"></div>',iconSize:[22,22],iconAnchor:[11,11]})}).addTo(map);
+    if(!re){map.fitBounds(routeLine.getBounds(),{padding:[60,60]});setTimeout(function(){follow=true;if(me)map.setView(me,17)},2500);
+      say('Hágale pues Arley, vamos. '+instr(steps[1]||steps[0]))}
+    $('banner').style.display='block';$('trip').style.display='flex';navTick(me)})
+  .catch(function(){routing=false;toast('Error de ruta. Revise la conexión.')})}
+
+var DIR={left:'a la izquierda',right:'a la derecha','slight left':'suave a la izquierda','slight right':'suave a la derecha','sharp left':'cerrado a la izquierda','sharp right':'cerrado a la derecha',uturn:'en U',straight:'derecho'};
+function instr(s){if(!s)return'';var m=s.maneuver,t=m.type,mod=m.modifier||'';var road=s.name?' por '+s.name:'';
+  if(t==='arrive')return'¡Listo Arley, llegamos!';
+  if(t==='depart')return'Arley, arranque'+road;
+  if(t==='off ramp'||t==='fork'&&/right|left/.test(mod)&&s.ref)return'Arley, tome la salida'+(s.destinations?' hacia '+s.destinations:'');
+  if(t==='off ramp')return'Arley, tome la salida';
+  if(t==='roundabout'||t==='rotary')return'Arley, en la glorieta tome la salida '+(m.exit||'');
+  if(mod==='straight'||t==='continue'&&!/left|right/.test(mod)||t==='new name')return'Arley, siga derecho, pues'+road;
+  if(t==='merge')return'Arley, incorpórese '+(DIR[mod]||'')+road;
+  if(/left|right|uturn/.test(mod))return'Arley, voltee '+(DIR[mod]||'')+road;
+  return'Arley, siga derecho, pues'+road}
+function instrSoon(s,m){var base=instr(s);if(s.maneuver.type==='arrive')return'Ey Arley, en '+m+' metros llegamos';
+  return'Ey Arley, en '+m+' metros '+base.replace(/^Arley, /,'')}
+
+function navTick(p){if(!route||!p)return;
+  // off-route check
+  if(distToLine(p,route.line)>40){offCount++;if(offCount>=2){offCount=0;say('Arley, espere, recalculando la ruta');toast('Recalculando…',2000);navigate(dest.lat,dest.lon,true);return}}else offCount=0;
+  var s=steps[nextIdx];if(!s){return}
+  var loc=[s.maneuver.location[1],s.maneuver.location[0]];var d=dist(p,loc);
+  if(d<25&&s.maneuver.type!=='arrive'){nextIdx++;s=steps[nextIdx];if(!s)return;loc=[s.maneuver.location[1],s.maneuver.location[0]];d=dist(p,loc)}
+  if(s.maneuver.type==='arrive'&&d<30){say('¡Listo Arley, llegamos!');toast('¡Listo Arley, llegamos! 🌴',4000);stopNav();return}
+  $('bd').textContent=fmtDist(d);$('bt').textContent=instr(s).replace(/^Arley, /,'').toUpperCase();
+  if(d<=320&&d>120&&!spoken[nextIdx+'a']){spoken[nextIdx+'a']=1;say(instrSoon(s,300))}
+  if(d<=60&&!spoken[nextIdx+'b']){spoken[nextIdx+'b']=1;say(instr(s))}
+  // remaining
+  var rem=d,i;for(i=nextIdx;i<steps.length;i++)rem+=steps[i].distance;
+  var frac=route.distance?rem/route.distance:1;var secs=route.duration*frac;
+  $('tMi').textContent=(rem/1609.34).toFixed(1);$('tMin').textContent=Math.max(1,Math.round(secs/60));
+  var eta=new Date(Date.now()+secs*1000);$('tEta').textContent=eta.toLocaleTimeString('es-CO',{hour:'numeric',minute:'2-digit'});
+}
+function stopNav(){route=null;if(routeLine){map.removeLayer(routeLine);map.removeLayer(glowLine);routeLine=glowLine=null}
+  $('banner').style.display='none';$('trip').style.display='none'}
+$('stop').onclick=function(){stopNav();if(destMk){map.removeLayer(destMk);destMk=null}};
+
+// ---------- favorites ----------
+function renderFavs(){var box=$('favList');box.innerHTML='';
+  favs.forEach(function(f,i){var r=document.createElement('div');r.className='fav';
+    var nm=document.createElement('div');nm.className='nm';nm.textContent=(f.home?'⌂ ':'★ ')+f.name;var sm=document.createElement('small');sm.textContent=f.addr||'';nm.appendChild(sm);r.appendChild(nm);
+    if(f.home){var b=document.createElement('button');b.textContent='Usar mi ubicación actual como Casa';b.style.fontSize='14px';b.onclick=function(){if(f.lat==null||confirm('¿Cambiar Casa por su ubicación actual?'))setHome(f)};r.appendChild(b)}
+    if(f.home&&f.lat==null){}
+    else{var g=document.createElement('button');g.textContent='IR';g.onclick=function(){$('favs').style.display='none';dest={lat:f.lat,lon:f.lon,name:f.name};navigate(f.lat,f.lon)};r.appendChild(g)}
+    var x=document.createElement('button');x.textContent='🗑';x.onclick=function(){if(confirm('¿Borrar '+f.name+'?')){favs.splice(i,1);saveFavs()}};r.appendChild(x);
+    box.appendChild(r)});
+  if(!favs.length)box.innerHTML='<p style="font-size:20px">Todavía no hay favoritos.</p>'}
+function setHome(f){if(!me){toast('Todavía no tengo su ubicación, Arley');return}f.lat=me[0];f.lon=me[1];saveFavs();toast('⌂ Casa guardada')}
+$('bFav').onclick=function(){var p=$('favs');p.style.display=p.style.display==='block'?'none':'block';renderFavs()};
+$('favClose').onclick=function(){$('favs').style.display='none'};
+$('casaBtn').onclick=function(){var h=home();if(h&&h.lat!=null){dest={lat:h.lat,lon:h.lon,name:'Casa'};navigate(h.lat,h.lon)}};
+renderFavs();updateCasa();
+
+// ---------- buttons ----------
+$('bMute').onclick=function(){muted=!muted;this.textContent=muted?'🔇':'🔊';this.classList.toggle('off',muted);if(muted&&window.speechSynthesis)speechSynthesis.cancel();toast(muted?'Voz apagada':'Voz prendida',1500)};
+$('bCenter').onclick=function(){follow=true;if(me)map.setView(me,17);else toast('Buscando su ubicación…')};
+$('bFull').onclick=function(){try{var d=document.documentElement;var pr=!document.fullscreenElement?(d.requestFullscreen||d.webkitRequestFullscreen).call(d):document.exitFullscreen();if(pr&&pr.catch)pr.catch(function(){toast('Pantalla completa no disponible')})}catch(e){toast('Pantalla completa no disponible')}};
+})();
+</script>
+</body>
+</html>
