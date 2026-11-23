@@ -62,6 +62,13 @@ button{font-family:inherit;letter-spacing:.06em;cursor:pointer}
 #credit{position:fixed;left:0;right:0;bottom:0;z-index:999;padding:3px 6px;text-align:center;font-family:system-ui,sans-serif;letter-spacing:0;font-size:12px;color:#e6dcef;background:rgba(18,0,42,.8)}
 #hud,#btns,#trip{bottom:30px !important}
 .me{width:44px;height:44px;display:flex;align-items:center;justify-content:center;filter:drop-shadow(0 0 6px #00e5ff)}
+.darkt{filter:invert(1) hue-rotate(195deg) brightness(.85) contrast(1.1) saturate(.6)}
+#hud{left:50% !important;right:auto !important;bottom:auto !important;top:78px;transform:translateX(-50%);padding:6px 18px !important;display:flex;align-items:baseline;gap:8px}
+#hud small{display:inline !important}
+body.nav #searchBox{display:none}
+body.nav #banner{top:10px}
+body.nav #hud{top:var(--bh,110px)}
+#casaBtn{bottom:30px !important}
 .pinx{width:22px;height:22px;border-radius:50%;background:var(--pink);border:3px solid #fff;box-shadow:0 0 14px var(--pink)}
 </style>
 </head>
@@ -115,7 +122,7 @@ button{font-family:inherit;letter-spacing:.06em;cursor:pointer}
 <div id="radio" class="glass"><h2>RADIO PAISA Y LATINA</h2><div id="stList"></div><button class="act alt" id="radioOff" style="width:100%;margin-top:8px">APAGAR RADIO</button></div>
 <audio id="aud" preload="none"></audio>
 <div id="toast" class="glass"></div>
-<div id="credit">Mapas © OpenStreetMap · CARTO · Rutas Valhalla</div>
+<div id="credit">Mapas © OpenStreetMap · Rutas Valhalla</div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
@@ -123,7 +130,7 @@ button{font-family:inherit;letter-spacing:.06em;cursor:pointer}
 var $=function(id){return document.getElementById(id)};
 var KISS=[28.2920,-81.3500];
 var map=L.map('map',{zoomControl:false,attributionControl:true}).setView(KISS,13);
-L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{attribution:'© OpenStreetMap © CARTO',subdomains:'abcd',maxZoom:20,keepBuffer:6,updateWhenIdle:false}).addTo(map);
+L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap',maxZoom:19,keepBuffer:6,updateWhenIdle:false,className:'darkt'}).addTo(map);
 
 // ---------- toast ----------
 var tT;function toast(m,ms){var t=$('toast');t.textContent=m;t.style.display='block';clearTimeout(tT);tT=setTimeout(function(){t.style.display='none'},ms||3000)}
@@ -161,7 +168,7 @@ function fmtDist(m){var ft=m*3.28084;if(ft<1000)return Math.round(ft/50)*50+' PI
 
 // ---------- me marker ----------
 var me=null,meMk=null,accC=null,heading=0,lastGood=null,follow=true;
-var arrowIcon=L.divIcon({className:'',iconSize:[44,44],iconAnchor:[22,22],html:'<div class="me" id="meArrow" style="filter:drop-shadow(0 0 6px #ff2e2e)"><svg width="26" height="44" viewBox="0 0 26 44"><rect x="1" y="5" width="3" height="8" rx="1" fill="#111"/><rect x="22" y="5" width="3" height="8" rx="1" fill="#111"/><rect x="1" y="30" width="3" height="8" rx="1" fill="#111"/><rect x="22" y="30" width="3" height="8" rx="1" fill="#111"/><rect x="3" y="2" width="20" height="40" rx="4" fill="#c8102e" stroke="#fff" stroke-width="1"/><rect x="5" y="3" width="16" height="3" rx="1" fill="#222"/><circle cx="7" cy="4.5" r="1.3" fill="#fffbe0"/><circle cx="19" cy="4.5" r="1.3" fill="#fffbe0"/><path d="M5 12 L21 12 L20 17 L6 17 Z" fill="#1b2a3a"/><rect x="6" y="18" width="14" height="14" rx="1.5" fill="#a00d24"/><rect x="7" y="33" width="12" height="4" rx="1" fill="#1b2a3a"/><rect x="9" y="38.5" width="8" height="2.5" rx="1" fill="#222"/></svg></div>'});
+var arrowIcon=L.divIcon({className:'',iconSize:[72,72],iconAnchor:[36,36],html:'<div class="me" id="meArrow" style="width:72px;height:72px;filter:drop-shadow(0 0 8px #ff2e2e)"><svg width="40" height="68" viewBox="0 0 26 44"><rect x="1" y="5" width="3" height="8" rx="1" fill="#111"/><rect x="22" y="5" width="3" height="8" rx="1" fill="#111"/><rect x="1" y="30" width="3" height="8" rx="1" fill="#111"/><rect x="22" y="30" width="3" height="8" rx="1" fill="#111"/><rect x="3" y="2" width="20" height="40" rx="4" fill="#c8102e" stroke="#fff" stroke-width="1"/><rect x="5" y="3" width="16" height="3" rx="1" fill="#222"/><circle cx="7" cy="4.5" r="1.3" fill="#fffbe0"/><circle cx="19" cy="4.5" r="1.3" fill="#fffbe0"/><path d="M5 12 L21 12 L20 17 L6 17 Z" fill="#1b2a3a"/><rect x="6" y="18" width="14" height="14" rx="1.5" fill="#a00d24"/><rect x="7" y="33" width="12" height="4" rx="1" fill="#1b2a3a"/><rect x="9" y="38.5" width="8" height="2.5" rx="1" fill="#222"/></svg></div>'});
 function setArrow(){var el=document.getElementById('meArrow');if(el)el.style.transform='rotate('+heading+'deg)'}
 var fT;map.on('dragstart',function(){follow=false;clearTimeout(fT);fT=setTimeout(function(){if(route){follow=true;if(me)map.setView(me,17)}},12000)});
 
@@ -243,8 +250,9 @@ function navigate(lat,lon,re){if(!me){toast('Esperando su ubicación GPS, Arley�
     if(destMk)destMk.setLatLng([lat,lon]);else destMk=L.marker([lat,lon],{icon:L.divIcon({className:'',html:'<div class="pinx"></div>',iconSize:[22,22],iconAnchor:[11,11]})}).addTo(map);
     if(!re){map.fitBounds(routeLine.getBounds(),{padding:[60,60]});setTimeout(function(){follow=true;if(me)map.setView(me,17)},2500);
       say('Hágale pues Arley, vamos'+(avoidTolls?', sin peajes':'')+'. '+instr(steps[1]||steps[0]))}
-    $('banner').style.display='block';$('trip').style.display='flex';navTick(me)})
+    $('banner').style.display='block';$('trip').style.display='flex';document.body.classList.add('nav');$('results').style.display='none';navTick(me);setBH()})
   .catch(function(){routing=false;toast('Error de ruta. Revise la conexión.')})}
+function setBH(){var b=$('banner');if(b&&b.offsetHeight)document.documentElement.style.setProperty('--bh',(b.offsetTop+b.offsetHeight+8)+'px')}
 function isArrive(s){return s&&(s.type===4||s.type===5||s.type===6)}
 function instr(s){if(!s)return'';if(isArrive(s))return'¡Listo Arley, llegamos!';return'Arley, '+s.text.charAt(0).toLowerCase()+s.text.slice(1)}
 function instrSoon(s,m){if(isArrive(s))return'Ey Arley, en '+m+' metros llegamos';return'Ey Arley, en '+m+' metros, '+s.text.charAt(0).toLowerCase()+s.text.slice(1)}
@@ -256,7 +264,7 @@ function navTick(p){if(!route||!p)return;
   var loc=s.loc;var d=dist(p,loc);
   if(d<25&&!isArrive(s)){nextIdx++;s=steps[nextIdx];if(!s)return;loc=s.loc;d=dist(p,loc)}
   if(isArrive(s)&&d<30){say('¡Listo Arley, llegamos!');toast('¡Listo Arley, llegamos! 🌴',4000);stopNav();return}
-  $('bd').textContent=fmtDist(d);$('bt').textContent=instr(s).replace(/^Arley, /,'').toUpperCase();
+  $('bd').textContent=fmtDist(d);$('bt').textContent=instr(s).replace(/^Arley, /,'').toUpperCase();setBH();
   if(d<=320&&d>120&&!spoken[nextIdx+'a']){spoken[nextIdx+'a']=1;say(instrSoon(s,300))}
   if(d<=60&&!spoken[nextIdx+'b']){spoken[nextIdx+'b']=1;say(instr(s))}
   // remaining
@@ -266,7 +274,7 @@ function navTick(p){if(!route||!p)return;
   var eta=new Date(Date.now()+secs*1000);$('tEta').textContent=eta.toLocaleTimeString('es-CO',{hour:'numeric',minute:'2-digit'});
 }
 function stopNav(){route=null;if(routeLine){map.removeLayer(routeLine);map.removeLayer(glowLine);routeLine=glowLine=null}
-  $('banner').style.display='none';$('trip').style.display='none'}
+  $('banner').style.display='none';$('trip').style.display='none';document.body.classList.remove('nav')}
 $('stop').onclick=function(){stopNav();if(destMk){map.removeLayer(destMk);destMk=null}};
 
 // ---------- favorites ----------
