@@ -67,9 +67,11 @@ button{font-family:inherit;letter-spacing:.06em;cursor:pointer}
 #hud small{display:inline !important}
 body.nav #searchBox{display:none}
 body.nav #banner{top:10px}
-body.nav #hud{top:var(--bh,110px)}
+#hud{display:none !important}
+body.nav #hud{display:flex !important;top:var(--bh,110px)}
 #casaBtn{bottom:auto !important;top:78px;left:10px;width:54px;height:54px;padding:0 !important;border-radius:50% !important;font-size:30px !important;line-height:54px;text-align:center}
 body.nav #casaBtn{top:var(--bh,110px)}
+body:has(#results[style*="block"]) #casaBtn,body:has(#results[style*="block"]) #stopsBar{display:none !important}
 #trip{left:6px !important;right:76px !important;bottom:6px !important;padding:4px 8px !important;flex-wrap:nowrap !important;gap:4px !important}
 #trip b{font-size:20px !important}
 #trip span{font-size:10px !important}
