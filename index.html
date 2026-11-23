@@ -69,9 +69,13 @@ body.nav #searchBox{display:none}
 body.nav #banner{top:10px}
 body.nav #hud{top:var(--bh,110px)}
 #casaBtn{bottom:30px !important}
-#mini{position:fixed;left:50%;transform:translateX(-50%);bottom:118px;z-index:1001;display:none;align-items:center;gap:8px;padding:6px 10px;font-family:system-ui,sans-serif;letter-spacing:0;font-size:14px;max-width:70vw;border-color:var(--cyan)}
+#mini{position:fixed;left:50%;transform:translateX(-50%);top:calc(var(--bh,110px) + 70px);z-index:1001;display:none;align-items:center;gap:8px;padding:6px 10px;font-family:system-ui,sans-serif;letter-spacing:0;font-size:14px;max-width:70vw;border-color:var(--cyan)}
 #miniName{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:46vw}
 #mini button{background:none;border:1px solid #fff;color:#fff;border-radius:8px;font-size:16px;padding:2px 8px}
+#credit{left:auto !important;right:6px !important;width:auto !important;background:none !important;padding:2px 6px !important;font-size:11px !important;opacity:.55}
+#credit .ct{display:none}
+#credit.open .ct{display:inline}
+#credit.open{background:rgba(10,0,20,.85) !important;opacity:1}
 .pinx{width:22px;height:22px;border-radius:50%;background:var(--pink);border:3px solid #fff;box-shadow:0 0 14px var(--pink)}
 </style>
 </head>
@@ -126,7 +130,7 @@ body.nav #hud{top:var(--bh,110px)}
 <audio id="aud" preload="none"></audio>
 <div id="mini" class="glass"><span id="miniName">📻</span><button id="miniNext">⏭</button><button id="miniOff">✕</button></div>
 <div id="toast" class="glass"></div>
-<div id="credit"><a href="https://www.maptiler.com/" target="_blank" style="color:#e6dcef">© MapTiler</a> © OpenStreetMap · Rutas Valhalla</div>
+<div id="credit" onclick="this.classList.toggle('open')"><span class="ci">ⓘ</span><span class="ct"><a href="https://www.maptiler.com/" target="_blank" style="color:#e6dcef">© MapTiler</a> © OpenStreetMap · Rutas Valhalla</span></div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
@@ -134,7 +138,7 @@ body.nav #hud{top:var(--bh,110px)}
 var $=function(id){return document.getElementById(id)};
 var KISS=[28.2920,-81.3500];
 var map=L.map('map',{zoomControl:false,attributionControl:true}).setView(KISS,13);
-L.tileLayer('https://api.maptiler.com/maps/streets-v2-dark/256/{z}/{x}/{y}.png?key=jQkuWtIhu5sX7DHh2RTD',{attribution:'© MapTiler © OpenStreetMap',maxZoom:20,keepBuffer:6,updateWhenIdle:false}).addTo(map);
+L.tileLayer('https://api.maptiler.com/maps/streets-v2-dark/256/{z}/{x}/{y}@2x.png?key=jQkuWtIhu5sX7DHh2RTD',{attribution:'© MapTiler © OpenStreetMap',maxZoom:20,keepBuffer:6,updateWhenIdle:false}).addTo(map);
 
 // ---------- toast ----------
 var tT;function toast(m,ms){var t=$('toast');t.textContent=m;t.style.display='block';clearTimeout(tT);tT=setTimeout(function(){t.style.display='none'},ms||3000)}
@@ -210,7 +214,32 @@ function listBox(items){var box=$('results');box.innerHTML='';
   if(!items.length){box.innerHTML='<div>No encontré nada, Arley</div>'}
   items.forEach(function(it){var d=document.createElement('div');d.textContent=it.text;d.onclick=function(){box.style.display='none';$('q').blur();it.pick()};box.appendChild(d)});
   box.style.display='block'}
-function search(v){fetch(GEO+'suggest?f=json&maxSuggestions=6&countryCode=USA&location='+locStr()+'&text='+encodeURIComponent(v))
+var AIRPORTS=[
+ {k:/\b(mco|orlando intern|aeropuerto (internacional )?de orlando|orlando airport|airport orlando)/,n:'MCO Orlando Internacional',t:[
+  {text:'✈ MCO Terminal A (lado norte)',lat:28.4330,lon:-81.3090},
+  {text:'✈ MCO Terminal B (lado sur)',lat:28.4293,lon:-81.3090},
+  {text:'✈ MCO Terminal C (sur, Brightline)',lat:28.4115,lon:-81.3080},
+  {text:'📱 MCO Cell Phone Lot Norte',lat:28.441093,lon:-81.3110498},
+  {text:'📱 MCO Cell Phone Lot Sur (Terminal C)',lat:28.4165627,lon:-81.3029605}]},
+ {k:/\b(sfb|sanford)/,n:'SFB Orlando Sanford',t:[
+  {text:'✈ SFB Terminal Orlando Sanford',lat:28.775749,lon:-81.242571},
+  {text:'📱 SFB Cell Phone Lot',lat:28.7656322,lon:-81.2376855}]}];
+function norm(v){return v.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'')}
+function expand(v){var x=norm(v);
+  x=x.replace(/\baerop(uerto)?\b|\baero\b|\baeropto\b/g,'airport').replace(/\borland\b/g,'orlando').replace(/\bterminal\b/g,'terminal');
+  return x}
+function airportHits(v){var x=norm(v),e=expand(v),out=[];
+  var isAir=/airport|aero|mco|sfb|terminal|vuelo/.test(e);
+  AIRPORTS.forEach(function(a){if(a.k.test(x)||a.k.test(e)||(isAir&&/orland/.test(x)&&a.n.indexOf('MCO')==0)||(isAir&&/sanford/.test(x))){
+    a.t.forEach(function(t){out.push({text:t.text,pick:function(){showPlace(t.lat,t.lon,t.text.replace(/^\S+\s/,''))}})})}});
+  return out}
+function photon(v){var p=me||KISS;return fetch('https://photon.komoot.io/api/?limit=5&lat='+p[0]+'&lon='+p[1]+'&q='+encodeURIComponent(v)).then(function(r){return r.json()}).then(function(j){
+  return (j.features||[]).map(function(f){var q=f.properties,c=f.geometry.coordinates;var t=[q.name,q.housenumber&&q.street?q.housenumber+' '+q.street:q.street,q.city,q.state].filter(Boolean).join(', ');
+   return{text:t,pick:function(){showPlace(c[1],c[0],t)}}})}).catch(function(){return[]})}
+function search(v){var e=expand(v),air=airportHits(v);
+  Promise.all([photon(e),fetch(GEO+'suggest?f=json&maxSuggestions=5&countryCode=USA&location='+locStr()+'&text='+encodeURIComponent(e)).then(function(r){return r.json()}).then(function(j){return (j.suggestions||[]).map(function(s){return{text:s.text,pick:function(){pickSuggest(s)}}})}).catch(function(){return[]})])
+  .then(function(r){var seen={},all=air.concat(r[0],r[1]).filter(function(i){var k=norm(i.text).slice(0,28);if(seen[k])return false;seen[k]=1;return true});listBox(all.slice(0,10))})}
+function searchOld(v){fetch(GEO+'suggest?f=json&maxSuggestions=6&countryCode=USA&location='+locStr()+'&text='+encodeURIComponent(v))
   .then(function(r){return r.json()}).then(function(j){
     listBox((j.suggestions||[]).map(function(s){return{text:s.text,pick:function(){pickSuggest(s)}}}))})
   .catch(function(){toast('Error buscando. Revise la conexión.')})}
@@ -218,11 +247,14 @@ function pickSuggest(s){fetch(GEO+'findAddressCandidates?f=json&maxLocations=1&S
   .then(function(r){return r.json()}).then(function(j){var c=(j.candidates||[])[0];
     if(!c){toast('No encontré nada, Arley');return}showPlace(c.location.y,c.location.x,c.address||s.text)})
   .catch(function(){toast('Error buscando. Revise la conexión.')})}
-function findList(v){fetch(GEO+'findAddressCandidates?f=json&maxLocations=5&location='+locStr()+'&SingleLine='+encodeURIComponent(v))
+function findList(v){search(v)}
+function findListOld(v){fetch(GEO+'findAddressCandidates?f=json&maxLocations=5&location='+locStr()+'&SingleLine='+encodeURIComponent(v))
   .then(function(r){return r.json()}).then(function(j){
     listBox((j.candidates||[]).map(function(c){return{text:c.address,pick:function(){showPlace(c.location.y,c.location.x,c.address)}}}))})
   .catch(function(){toast('Error buscando. Revise la conexión.')})}
 function showPlace(lat,lon,name){dest={lat:lat,lon:lon,name:name};
+  var th=/airport|aeropuerto/i.test(name)&&!/terminal|cell/i.test(name)?airportHits(name.indexOf('Sanford')>=0?'sfb':(/orlando/i.test(name)&&!/executive|melbourne|apopka/i.test(name)?'mco':'')):[];
+  if(th.length){listBox(th);toast('✈ Elige la terminal, Arley',2500)}
   if(destMk)map.removeLayer(destMk);destMk=L.marker([lat,lon],{icon:L.divIcon({className:'',html:'<div class="pinx"></div>',iconSize:[22,22],iconAnchor:[11,11]})}).addTo(map);
   follow=false;map.setView([lat,lon],16);$('pName').textContent=name;$('place').style.display='block'}
 $('pGo').onclick=function(){$('place').style.display='none';if(dest)navigate(dest.lat,dest.lon)};
