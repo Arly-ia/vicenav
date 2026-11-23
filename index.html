@@ -28,8 +28,14 @@ button{font-family:inherit;letter-spacing:.06em;cursor:pointer}
 #results div{padding:12px 14px;font-size:18px;border-bottom:1px solid rgba(255,46,136,.35);font-family:system-ui,sans-serif;letter-spacing:0}
 #results div:last-child{border-bottom:none}
 #banner{position:fixed;top:70px;left:10px;right:10px;z-index:999;display:none;padding:12px 16px;border-color:var(--orange);box-shadow:0 0 16px rgba(255,138,0,.7)}
-#banner .d{font-size:40px;color:var(--orange);text-shadow:0 0 10px var(--orange);line-height:1}
-#banner .t{font-size:24px}
+#banner .d{font-size:26px;color:var(--orange);text-shadow:0 0 10px var(--orange);line-height:1}
+#banner .t{font-size:16px;line-height:1.15}
+#banner{padding:8px 12px !important}
+#radio{position:fixed;left:10px;right:10px;bottom:90px;z-index:2000;display:none;padding:12px;max-height:55vh;overflow:auto}
+#radio h2{margin:0 0 8px;font-weight:400;font-size:26px;color:var(--orange)}
+#radio .st{padding:10px;font-size:18px;border-bottom:1px solid rgba(255,46,136,.35);font-family:system-ui,sans-serif;letter-spacing:0}
+#radio .st.on{color:var(--cyan)}
+.rb.on{border-color:var(--cyan);box-shadow:0 0 12px var(--cyan)}
 #hud{position:fixed;left:10px;bottom:16px;z-index:1000;padding:8px 14px;text-align:center;border-color:var(--cyan);box-shadow:0 0 12px rgba(0,229,255,.6)}
 #spd{font-size:46px;line-height:1;color:var(--cyan);text-shadow:0 0 10px var(--cyan)}
 #hud small{display:block;font-size:15px;color:#cfe}
@@ -86,6 +92,8 @@ button{font-family:inherit;letter-spacing:.06em;cursor:pointer}
 </div>
 
 <div id="btns">
+  <button class="rb" id="bRadio" title="Radio">📻</button>
+  <button class="rb" id="bToll" title="Peajes">$</button>
   <button class="rb" id="bFav" title="Favoritos">★</button>
   <button class="rb" id="bMute" title="Voz">🔊</button>
   <button class="rb" id="bFull" title="Pantalla completa">⛶</button>
@@ -104,8 +112,10 @@ button{font-family:inherit;letter-spacing:.06em;cursor:pointer}
   <button class="act alt" id="favClose" style="width:100%;margin-top:8px">CERRAR</button>
 </div>
 
+<div id="radio" class="glass"><h2>RADIO LATINA</h2><div id="stList"></div><button class="act alt" id="radioOff" style="width:100%;margin-top:8px">APAGAR RADIO</button></div>
+<audio id="aud" preload="none"></audio>
 <div id="toast" class="glass"></div>
-<div id="credit">Mapas © Esri · Rutas OSRM</div>
+<div id="credit">Mapas © OpenStreetMap · CARTO · Rutas Valhalla</div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
@@ -113,9 +123,7 @@ button{font-family:inherit;letter-spacing:.06em;cursor:pointer}
 var $=function(id){return document.getElementById(id)};
 var KISS=[28.2920,-81.3500];
 var map=L.map('map',{zoomControl:false,attributionControl:true}).setView(KISS,13);
-var ESRI='https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/';
-L.tileLayer(ESRI+'World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}',{attribution:'Tiles © Esri',maxZoom:19,maxNativeZoom:16}).addTo(map);
-L.tileLayer(ESRI+'World_Dark_Gray_Reference/MapServer/tile/{z}/{y}/{x}',{attribution:'Tiles © Esri',maxZoom:19,maxNativeZoom:16}).addTo(map);
+L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{attribution:'© OpenStreetMap © CARTO',subdomains:'abcd',maxZoom:20,keepBuffer:6,updateWhenIdle:false}).addTo(map);
 
 // ---------- toast ----------
 var tT;function toast(m,ms){var t=$('toast');t.textContent=m;t.style.display='block';clearTimeout(tT);tT=setTimeout(function(){t.style.display='none'},ms||3000)}
@@ -126,7 +134,7 @@ function pickVoice(){if(!window.speechSynthesis)return;var vs=speechSynthesis.ge
   for(var i=0;i<pref.length;i++){var v=vs.find(function(x){return x.lang&&x.lang.replace('_','-').toLowerCase()===pref[i].toLowerCase()});if(v){voice=v;return}}
   voice=vs.find(function(x){return x.lang&&x.lang.toLowerCase().indexOf('es')===0})||null}
 if(window.speechSynthesis){pickVoice();speechSynthesis.onvoiceschanged=pickVoice}
-function say(txt){if(muted||!window.speechSynthesis)return;try{speechSynthesis.cancel();var u=new SpeechSynthesisUtterance(txt);u.lang=voice?voice.lang:'es-CO';if(voice)u.voice=voice;u.rate=1;speechSynthesis.speak(u)}catch(e){}}
+function say(txt){if(muted||!window.speechSynthesis)return;try{speechSynthesis.cancel();var u=new SpeechSynthesisUtterance(txt);u.lang=voice?voice.lang:'es-CO';if(voice)u.voice=voice;u.rate=1;var a=document.getElementById('aud');if(a&&!a.paused){a.volume=0.25;u.onend=function(){a.volume=1}}speechSynthesis.speak(u)}catch(e){}}
 
 // ---------- storage ----------
 var mem=null;
@@ -153,9 +161,9 @@ function fmtDist(m){var ft=m*3.28084;if(ft<1000)return Math.round(ft/50)*50+' PI
 
 // ---------- me marker ----------
 var me=null,meMk=null,accC=null,heading=0,lastGood=null,follow=true;
-var arrowIcon=L.divIcon({className:'',iconSize:[44,44],iconAnchor:[22,22],html:'<div class="me" id="meArrow"><svg width="34" height="34" viewBox="0 0 24 24"><path d="M12 2 L20 21 L12 16.5 L4 21 Z" fill="#00e5ff" stroke="#fff" stroke-width="1.5" stroke-linejoin="round"/></svg></div>'});
+var arrowIcon=L.divIcon({className:'',iconSize:[44,44],iconAnchor:[22,22],html:'<div class="me" id="meArrow" style="filter:drop-shadow(0 0 6px #ff2e2e)"><svg width="26" height="44" viewBox="0 0 26 44"><rect x="1" y="5" width="3" height="8" rx="1" fill="#111"/><rect x="22" y="5" width="3" height="8" rx="1" fill="#111"/><rect x="1" y="30" width="3" height="8" rx="1" fill="#111"/><rect x="22" y="30" width="3" height="8" rx="1" fill="#111"/><rect x="3" y="2" width="20" height="40" rx="4" fill="#c8102e" stroke="#fff" stroke-width="1"/><rect x="5" y="3" width="16" height="3" rx="1" fill="#222"/><circle cx="7" cy="4.5" r="1.3" fill="#fffbe0"/><circle cx="19" cy="4.5" r="1.3" fill="#fffbe0"/><path d="M5 12 L21 12 L20 17 L6 17 Z" fill="#1b2a3a"/><rect x="6" y="18" width="14" height="14" rx="1.5" fill="#a00d24"/><rect x="7" y="33" width="12" height="4" rx="1" fill="#1b2a3a"/><rect x="9" y="38.5" width="8" height="2.5" rx="1" fill="#222"/></svg></div>'});
 function setArrow(){var el=document.getElementById('meArrow');if(el)el.style.transform='rotate('+heading+'deg)'}
-map.on('dragstart',function(){follow=false});
+var fT;map.on('dragstart',function(){follow=false;clearTimeout(fT);fT=setTimeout(function(){if(route){follow=true;if(me)map.setView(me,17)}},12000)});
 
 function onFix(pos){var c=pos.coords,now=Date.now();
   if(c.accuracy>50&&lastGood&&now-lastGood<10000)return;
@@ -216,43 +224,38 @@ map.on('contextmenu',function(e){showPlace(e.latlng.lat,e.latlng.lng,'Pin '+e.la
 
 // ---------- routing ----------
 var route=null,routeLine=null,glowLine=null,steps=[],nextIdx=1,spoken={},offCount=0,routing=false;
+var avoidTolls=false;try{avoidTolls=localStorage.getItem('viceNavTolls')==='1'}catch(e){}
+function dec6(str){var idx=0,lat=0,lng=0,out=[];while(idx<str.length){var b,sh=0,r=0;do{b=str.charCodeAt(idx++)-63;r|=(b&31)<<sh;sh+=5}while(b>=32);lat+=(r&1)?~(r>>1):(r>>1);sh=0;r=0;do{b=str.charCodeAt(idx++)-63;r|=(b&31)<<sh;sh+=5}while(b>=32);lng+=(r&1)?~(r>>1):(r>>1);out.push([lat/1e6,lng/1e6])}return out}
 function navigate(lat,lon,re){if(!me){toast('Esperando su ubicación GPS, Arley…');return}
   if(routing)return;routing=true;dest=dest&&dest.lat===lat&&dest.lon===lon?dest:{lat:lat,lon:lon,name:''};
-  var url='https://router.project-osrm.org/route/v1/driving/'+me[1]+','+me[0]+';'+lon+','+lat+'?overview=full&geometries=geojson&steps=true';
+  var o={lat:me[0],lon:me[1]};if(re){o.heading=Math.round(heading);o.heading_tolerance=60}
+  var body={locations:[o,{lat:lat,lon:lon}],costing:'auto',costing_options:{auto:{use_tolls:avoidTolls?0:0.5}},language:'es-ES',units:'kilometers'};
+  var url='https://valhalla1.openstreetmap.de/route?json='+encodeURIComponent(JSON.stringify(body));
   fetch(url).then(function(r){return r.json()}).then(function(j){routing=false;
-    if(!j.routes||!j.routes.length){toast('No encontré ruta, Arley');return}
-    route=j.routes[0];var line=route.geometry.coordinates.map(function(c){return [c[1],c[0]]});route.line=line;
+    if(!j.trip||!j.trip.legs){toast('No encontré ruta, Arley');return}
+    var leg=j.trip.legs[0];var line=dec6(leg.shape);
+    route={line:line,distance:j.trip.summary.length*1000,duration:j.trip.summary.time};
     if(routeLine){map.removeLayer(routeLine);map.removeLayer(glowLine)}
     glowLine=L.polyline(line,{color:'#ff2e88',weight:16,opacity:.25}).addTo(map);
     routeLine=L.polyline(line,{color:'#ff2e88',weight:6,opacity:1}).addTo(map);
-    steps=route.legs[0].steps;nextIdx=1;spoken={};offCount=0;
+    steps=leg.maneuvers.map(function(m){var p=line[m.begin_shape_index]||line[0];return{loc:p,type:m.type,text:m.instruction,verbal:m.verbal_pre_transition_instruction||m.instruction,distance:(m.length||0)*1000}});
+    nextIdx=1;spoken={};offCount=0;
     if(destMk)destMk.setLatLng([lat,lon]);else destMk=L.marker([lat,lon],{icon:L.divIcon({className:'',html:'<div class="pinx"></div>',iconSize:[22,22],iconAnchor:[11,11]})}).addTo(map);
     if(!re){map.fitBounds(routeLine.getBounds(),{padding:[60,60]});setTimeout(function(){follow=true;if(me)map.setView(me,17)},2500);
-      say('Hágale pues Arley, vamos. '+instr(steps[1]||steps[0]))}
+      say('Hágale pues Arley, vamos'+(avoidTolls?', sin peajes':'')+'. '+instr(steps[1]||steps[0]))}
     $('banner').style.display='block';$('trip').style.display='flex';navTick(me)})
   .catch(function(){routing=false;toast('Error de ruta. Revise la conexión.')})}
-
-var DIR={left:'a la izquierda',right:'a la derecha','slight left':'suave a la izquierda','slight right':'suave a la derecha','sharp left':'cerrado a la izquierda','sharp right':'cerrado a la derecha',uturn:'en U',straight:'derecho'};
-function instr(s){if(!s)return'';var m=s.maneuver,t=m.type,mod=m.modifier||'';var road=s.name?' por '+s.name:'';
-  if(t==='arrive')return'¡Listo Arley, llegamos!';
-  if(t==='depart')return'Arley, arranque'+road;
-  if(t==='off ramp'||t==='fork'&&/right|left/.test(mod)&&s.ref)return'Arley, tome la salida'+(s.destinations?' hacia '+s.destinations:'');
-  if(t==='off ramp')return'Arley, tome la salida';
-  if(t==='roundabout'||t==='rotary')return'Arley, en la glorieta tome la salida '+(m.exit||'');
-  if(mod==='straight'||t==='continue'&&!/left|right/.test(mod)||t==='new name')return'Arley, siga derecho, pues'+road;
-  if(t==='merge')return'Arley, incorpórese '+(DIR[mod]||'')+road;
-  if(/left|right|uturn/.test(mod))return'Arley, voltee '+(DIR[mod]||'')+road;
-  return'Arley, siga derecho, pues'+road}
-function instrSoon(s,m){var base=instr(s);if(s.maneuver.type==='arrive')return'Ey Arley, en '+m+' metros llegamos';
-  return'Ey Arley, en '+m+' metros '+base.replace(/^Arley, /,'')}
+function isArrive(s){return s&&(s.type===4||s.type===5||s.type===6)}
+function instr(s){if(!s)return'';if(isArrive(s))return'¡Listo Arley, llegamos!';return'Arley, '+s.text.charAt(0).toLowerCase()+s.text.slice(1)}
+function instrSoon(s,m){if(isArrive(s))return'Ey Arley, en '+m+' metros llegamos';return'Ey Arley, en '+m+' metros, '+s.text.charAt(0).toLowerCase()+s.text.slice(1)}
 
 function navTick(p){if(!route||!p)return;
   // off-route check
   if(distToLine(p,route.line)>40){offCount++;if(offCount>=2){offCount=0;say('Arley, espere, recalculando la ruta');toast('Recalculando…',2000);navigate(dest.lat,dest.lon,true);return}}else offCount=0;
   var s=steps[nextIdx];if(!s){return}
-  var loc=[s.maneuver.location[1],s.maneuver.location[0]];var d=dist(p,loc);
-  if(d<25&&s.maneuver.type!=='arrive'){nextIdx++;s=steps[nextIdx];if(!s)return;loc=[s.maneuver.location[1],s.maneuver.location[0]];d=dist(p,loc)}
-  if(s.maneuver.type==='arrive'&&d<30){say('¡Listo Arley, llegamos!');toast('¡Listo Arley, llegamos! 🌴',4000);stopNav();return}
+  var loc=s.loc;var d=dist(p,loc);
+  if(d<25&&!isArrive(s)){nextIdx++;s=steps[nextIdx];if(!s)return;loc=s.loc;d=dist(p,loc)}
+  if(isArrive(s)&&d<30){say('¡Listo Arley, llegamos!');toast('¡Listo Arley, llegamos! 🌴',4000);stopNav();return}
   $('bd').textContent=fmtDist(d);$('bt').textContent=instr(s).replace(/^Arley, /,'').toUpperCase();
   if(d<=320&&d>120&&!spoken[nextIdx+'a']){spoken[nextIdx+'a']=1;say(instrSoon(s,300))}
   if(d<=60&&!spoken[nextIdx+'b']){spoken[nextIdx+'b']=1;say(instr(s))}
@@ -281,6 +284,19 @@ $('bFav').onclick=function(){var p=$('favs');p.style.display=p.style.display==='
 $('favClose').onclick=function(){$('favs').style.display='none'};
 $('casaBtn').onclick=function(){var h=home();if(h&&h.lat!=null){dest={lat:h.lat,lon:h.lon,name:'Casa'};navigate(h.lat,h.lon)}};
 renderFavs();updateCasa();
+// ---------- peajes ----------
+function tollUI(){var b=$('bToll');b.textContent=avoidTolls?'🚫$':'$';b.classList.toggle('on',avoidTolls)}tollUI();
+$('bToll').onclick=function(){avoidTolls=!avoidTolls;try{localStorage.setItem('viceNavTolls',avoidTolls?'1':'0')}catch(e){}tollUI();
+  toast(avoidTolls?'Sin peajes, Arley':'Peajes permitidos',1800);if(route&&dest)navigate(dest.lat,dest.lon,true)};
+// ---------- radio ----------
+var STATIONS=[{n:'Z92 Miami 92.3 FM',u:'https://liveaudio.lamusica.com/MIA_WCMQ_icy'},{n:'Viva FM Orlando 99.5',u:'https://stream.broadcastserver.net:2020/stream/wvvo'}],stLoaded=false,curSt=-1;
+function renderSt(){var b=$('stList');b.innerHTML='';STATIONS.forEach(function(st,i){var d=document.createElement('div');d.className='st'+(i===curSt?' on':'');d.textContent=(i===curSt?'▶ ':'')+st.n;d.onclick=function(){playSt(i)};b.appendChild(d)})}
+function loadSt(){if(stLoaded)return;stLoaded=true;var seen={};STATIONS.forEach(function(x){seen[x.u]=1});
+  fetch('https://de1.api.radio-browser.info/json/stations/search?tag=latin&limit=25&order=clickcount&reverse=true&hidebroken=true&is_https=true').then(function(r){return r.json()}).then(function(j){
+    j.forEach(function(x){if(x.url_resolved&&x.url_resolved.indexOf('https')===0&&!seen[x.url_resolved]&&STATIONS.length<14){seen[x.url_resolved]=1;STATIONS.push({n:x.name.slice(0,40),u:x.url_resolved})}});renderSt()}).catch(function(){})}
+function playSt(i){var a=$('aud');curSt=i;a.src=STATIONS[i].u;a.volume=1;a.play().then(function(){toast('📻 '+STATIONS[i].n,2000)}).catch(function(){toast('Esa emisora no arrancó, pruebe otra')});$('bRadio').classList.add('on');renderSt()}
+$('bRadio').onclick=function(){var p=$('radio');p.style.display=p.style.display==='block'?'none':'block';renderSt();loadSt()};
+$('radioOff').onclick=function(){var a=$('aud');a.pause();a.removeAttribute('src');curSt=-1;$('bRadio').classList.remove('on');$('radio').style.display='none'};
 
 // ---------- buttons ----------
 $('bMute').onclick=function(){muted=!muted;this.textContent=muted?'🔇':'🔊';this.classList.toggle('off',muted);if(muted&&window.speechSynthesis)speechSynthesis.cancel();toast(muted?'Voz apagada':'Voz prendida',1500)};
