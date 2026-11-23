@@ -122,7 +122,7 @@ body.nav #hud{top:var(--bh,110px)}
 <div id="radio" class="glass"><h2>RADIO PAISA Y LATINA</h2><div id="stList"></div><button class="act alt" id="radioOff" style="width:100%;margin-top:8px">APAGAR RADIO</button></div>
 <audio id="aud" preload="none"></audio>
 <div id="toast" class="glass"></div>
-<div id="credit">Mapas © OpenStreetMap · Rutas Valhalla</div>
+<div id="credit"><a href="https://www.maptiler.com/" target="_blank" style="color:#e6dcef">© MapTiler</a> © OpenStreetMap · Rutas Valhalla</div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
@@ -130,7 +130,7 @@ body.nav #hud{top:var(--bh,110px)}
 var $=function(id){return document.getElementById(id)};
 var KISS=[28.2920,-81.3500];
 var map=L.map('map',{zoomControl:false,attributionControl:true}).setView(KISS,13);
-L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap',maxZoom:19,keepBuffer:6,updateWhenIdle:false,className:'darkt'}).addTo(map);
+L.tileLayer('https://api.maptiler.com/maps/streets-v2-dark/256/{z}/{x}/{y}.png?key=jQkuWtIhu5sX7DHh2RTD',{attribution:'© MapTiler © OpenStreetMap',maxZoom:20,keepBuffer:6,updateWhenIdle:false}).addTo(map);
 
 // ---------- toast ----------
 var tT;function toast(m,ms){var t=$('toast');t.textContent=m;t.style.display='block';clearTimeout(tT);tT=setTimeout(function(){t.style.display='none'},ms||3000)}
