@@ -117,6 +117,9 @@ body.nav #stopsBar{display:none !important}
 .numLayer{filter:invert(1) hue-rotate(200deg) brightness(1.25) contrast(1.35) saturate(.9)}
 .pinx{width:22px;height:22px;border-radius:50%;background:var(--pink);border:3px solid #fff;box-shadow:0 0 14px var(--pink)}
 </style>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#12002a">
+<link rel="icon" href="icon-192.png">
 </head>
 <body>
 <div id="map"></div>
@@ -502,5 +505,6 @@ $('bCenter').onclick=function(){follow=true;if(me)followTo(me,17);else toast('Bu
 $('bFull').onclick=function(){try{var d=document.documentElement;var pr=!document.fullscreenElement?(d.requestFullscreen||d.webkitRequestFullscreen).call(d):document.exitFullscreen();if(pr&&pr.catch)pr.catch(function(){toast('Pantalla completa no disponible')})}catch(e){toast('Pantalla completa no disponible')}};
 })();
 </script>
+<script>if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js').catch(function(){})</script>
 </body>
 </html>
