@@ -51,6 +51,12 @@ body.lowz .brd span{display:none}
 #radio h2{margin:0 0 8px;font-weight:400;font-size:26px;color:var(--orange)}
 #radio .st{padding:10px;font-size:18px;border-bottom:1px solid rgba(255,46,136,.35);font-family:system-ui,sans-serif;letter-spacing:0}
 #radio .st.on{color:var(--cyan)}
+.eq{display:inline-flex;align-items:flex-end;gap:2px;height:18px;margin-right:6px;vertical-align:middle}
+.eq i{display:block;width:3px;height:4px;border-radius:2px;background:linear-gradient(var(--cyan),#ff2e88)}
+.eq.play i{animation:eqb .9s ease-in-out infinite}
+.eq.play i:nth-child(2){animation-duration:.7s;animation-delay:-.2s}.eq.play i:nth-child(3){animation-duration:1.1s;animation-delay:-.4s}.eq.play i:nth-child(4){animation-duration:.6s;animation-delay:-.1s}.eq.play i:nth-child(5){animation-duration:.95s;animation-delay:-.5s}
+@keyframes eqb{0%,100%{height:4px}50%{height:18px}}
+
 .rb.on{border-color:var(--cyan);box-shadow:0 0 12px var(--cyan)}
 #hud{position:fixed;left:10px;bottom:16px;z-index:1000;padding:8px 14px;text-align:center;border-color:var(--cyan);box-shadow:0 0 12px rgba(0,229,255,.6)}
 #spd{font-size:46px;line-height:1;color:var(--cyan);text-shadow:0 0 10px var(--cyan)}
@@ -214,7 +220,7 @@ body.nav #btns{bottom:calc(96px + env(safe-area-inset-bottom,0px)) !important}
 
 <div id="radio" class="glass"><h2>RADIO POR PAÍS</h2><div id="stList"></div><button class="act alt" id="radioOff" style="width:100%;margin-top:8px">APAGAR RADIO</button></div>
 <audio id="aud" preload="none"></audio>
-<div id="mini" class="glass"><span id="miniName">📻</span><button id="miniNext">⏭</button><button id="miniOff">✕</button></div>
+<div id="mini" class="glass"><span class="eq" id="eq"><i></i><i></i><i></i><i></i><i></i></span><span id="miniName">📻</span><button id="miniNext">⏭</button><button id="miniOff">✕</button></div>
 <div id="toast" class="glass"></div>
 <div id="credit" onclick="this.classList.toggle('open')"><span class="ci">ⓘ</span><span class="ct"><a href="https://www.maptiler.com/" target="_blank" style="color:#e6dcef">© MapTiler</a> © OpenStreetMap · Esri · Rutas Valhalla</span></div>
 
@@ -608,9 +614,11 @@ var FAVST=[];try{FAVST=JSON.parse(localStorage.getItem('viceNavFavSt')||'[]')}ca
 function saveFavSt(){try{localStorage.setItem('viceNavFavSt',JSON.stringify(FAVST))}catch(e){}}
 function isFavSt(u){return FAVST.some(function(x){return x.u===u})}
 var pais='CO';try{pais=localStorage.getItem('viceNavPais')||'CO'}catch(e){}
+var eqOn=false;function setEq(v){eqOn=v;document.querySelectorAll('.eq').forEach(function(e){e.classList.toggle('play',v)})}
+setTimeout(function(){var a=$('aud');['playing'].forEach(function(ev){a.addEventListener(ev,function(){setEq(true)})});['pause','ended','error','waiting','emptied'].forEach(function(ev){a.addEventListener(ev,function(){setEq(false)})})},0);
 var STATIONS=[],stCache={},curSt=-1,curU='';
 function flagsHtml(){var f=$('flags');if(!f){f=document.createElement('div');f.id='flags';f.style.cssText='display:flex;flex-wrap:wrap;gap:6px;margin:0 0 8px';$('stList').parentNode.insertBefore(f,$('stList'))}f.innerHTML='';PAISES.forEach(function(c){var b=document.createElement('button');b.textContent=c[1];b.style.cssText='font-size:26px;line-height:1;padding:4px 6px;border-radius:10px;background:'+(c[0]===pais?'rgba(0,240,255,.25)':'transparent')+';border:2px solid '+(c[0]===pais?'var(--cyan)':'rgba(255,46,136,.35)');b.onclick=function(){pais=c[0];try{localStorage.setItem('viceNavPais',pais)}catch(e){}loadSt()};f.appendChild(b)})}
-function renderSt(){flagsHtml();var b=$('stList');b.innerHTML='';if(!STATIONS.length){b.innerHTML='<div class="st">'+(pais==='FAV'?'Toque ☆ en una emisora para guardarla aquí':'Cargando emisoras…')+'</div>';return}STATIONS.forEach(function(st,i){var on=st.u===curU;var d=document.createElement('div');d.className='st'+(on?' on':'');d.style.display='flex';d.style.alignItems='center';var t=document.createElement('span');t.style.flex='1';t.textContent=(on?'▶ ':'')+st.n;t.onclick=function(){playSt(i)};var f=document.createElement('span');var fv=isFavSt(st.u);f.textContent=fv?'★':'☆';f.style.cssText='font-size:24px;padding:0 6px;color:'+(fv?'#ffd400':'#aaa');f.onclick=function(e){e.stopPropagation();if(isFavSt(st.u)){FAVST=FAVST.filter(function(x){return x.u!==st.u});toast('Quitada de favoritas',1500)}else{FAVST.push({n:st.n,u:st.u});toast('Guardada en ⭐',1500)}saveFavSt();if(pais==='FAV')STATIONS=FAVST.slice();renderSt()};d.appendChild(t);d.appendChild(f);b.appendChild(d)})}
+function renderSt(){flagsHtml();var b=$('stList');b.innerHTML='';if(!STATIONS.length){b.innerHTML='<div class="st">'+(pais==='FAV'?'Toque ☆ en una emisora para guardarla aquí':'Cargando emisoras…')+'</div>';return}STATIONS.forEach(function(st,i){var on=st.u===curU;var d=document.createElement('div');d.className='st'+(on?' on':'');d.style.display='flex';d.style.alignItems='center';var t=document.createElement('span');t.style.flex='1';if(on){var q=document.createElement('span');q.className='eq'+(eqOn?' play':'');q.innerHTML='<i></i><i></i><i></i><i></i><i></i>';t.appendChild(q)}t.appendChild(document.createTextNode(st.n));t.onclick=function(){playSt(i)};var f=document.createElement('span');var fv=isFavSt(st.u);f.textContent=fv?'★':'☆';f.style.cssText='font-size:24px;padding:0 6px;color:'+(fv?'#ffd400':'#aaa');f.onclick=function(e){e.stopPropagation();if(isFavSt(st.u)){FAVST=FAVST.filter(function(x){return x.u!==st.u});toast('Quitada de favoritas',1500)}else{FAVST.push({n:st.n,u:st.u});toast('Guardada en ⭐',1500)}saveFavSt();if(pais==='FAV')STATIONS=FAVST.slice();renderSt()};d.appendChild(t);d.appendChild(f);b.appendChild(d)})}
 function loadSt(){var cc=pais;if(cc==='FAV'){STATIONS=FAVST.slice();renderSt();return}if(stCache[cc]){STATIONS=stCache[cc];renderSt();return}
   var base=cc==='CO'?CO_ST.slice(0,10):cc==='US'?US_ST.slice():[];STATIONS=base;renderSt();if(base.length>=10){stCache[cc]=base;return}
   var q=cc==='US'?'countrycode=US&language=spanish':'countrycode='+cc;
