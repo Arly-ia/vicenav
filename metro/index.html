@@ -1,0 +1,82 @@
+<!doctype html><html lang="es"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0a7f3f"><meta name="apple-mobile-web-app-capable" content="yes">
+<title>Mi Metro MDE</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+:root{--g:#0a7f3f;--g2:#6cbe45;--o:#f28c00}
+*{box-sizing:border-box}html,body{margin:0;height:100%;font-family:system-ui,-apple-system,Roboto,sans-serif;background:#f4f6f5;color:#1d2b24}
+#top{position:fixed;top:0;left:0;right:0;z-index:1000;background:var(--g);color:#fff;padding:calc(env(safe-area-inset-top) + 10px) 14px 10px;box-shadow:0 2px 8px rgba(0,0,0,.25)}
+#top h1{margin:0;font-size:19px;letter-spacing:.5px;display:flex;align-items:center;gap:8px}
+#top h1 b{background:#fff;color:var(--g);border-radius:6px;padding:1px 7px;font-size:15px}
+#map{position:fixed;inset:0}
+#card{position:fixed;left:10px;right:10px;bottom:calc(env(safe-area-inset-bottom) + 10px);z-index:1000;background:#fff;border-radius:16px;box-shadow:0 4px 18px rgba(0,0,0,.25);padding:14px;border-top:6px solid var(--g)}
+.lbl{font-size:12px;text-transform:uppercase;color:#5d6b64;letter-spacing:.6px}
+.big{font-size:24px;font-weight:800;color:var(--g)}
+.row{display:flex;gap:10px;align-items:center;justify-content:space-between;margin-top:6px}
+#alert{display:none;background:var(--o);color:#fff;font-weight:800;font-size:20px;text-align:center;border-radius:12px;padding:12px;margin-top:10px;animation:bl .7s infinite alternate}
+@keyframes bl{to{background:#d9480f}}
+button{border:0;border-radius:12px;padding:12px 14px;font-weight:700;font-size:15px}
+#bDest{background:var(--g);color:#fff;flex:1}#bStop{background:#e8eee9;color:#1d2b24}
+#sheet{position:fixed;inset:0;z-index:2000;background:rgba(0,0,0,.4);display:none}
+#sheet .in{position:absolute;left:0;right:0;bottom:0;max-height:78%;overflow:auto;background:#fff;border-radius:18px 18px 0 0;padding:14px 14px calc(env(safe-area-inset-bottom) + 14px)}
+.ln{font-weight:800;margin:12px 0 6px;display:flex;align-items:center;gap:8px}.dot{width:14px;height:14px;border-radius:50%}
+.st{padding:11px 10px;border-bottom:1px solid #eef2ef;font-size:16px}.st:active{background:#eaf5ee}
+#route{font-size:14px;color:#3c4a43;margin-top:6px}
+#credit{position:fixed;right:4px;bottom:2px;z-index:900;font-size:9px;color:#666}
+</style></head><body>
+<div id="map"></div>
+<div id="top"><h1><b>M</b> Mi Metro MDE</h1></div>
+<div id="card">
+ <div class="lbl">Estación más cercana</div>
+ <div class="big" id="near">Buscando GPS…</div>
+ <div class="row"><div><div class="lbl">Próxima</div><div id="next" style="font-weight:700;font-size:17px">—</div></div><div style="text-align:right"><div class="lbl">Distancia</div><div id="dist" style="font-weight:700;font-size:17px">—</div></div></div>
+ <div id="route"></div>
+ <div id="alert"></div>
+ <div class="row" style="margin-top:10px"><button id="bDest">¿A dónde va?</button><button id="bStop">Quitar</button></div>
+</div>
+<div id="sheet"><div class="in"><div style="font-weight:800;font-size:18px">Elija su destino</div><div id="list"></div></div></div>
+<div id="credit">© OpenStreetMap · Wikidata · No oficial</div>
+<script>
+var L0={"A": {"name": "Línea A", "color": "#0a7f3f", "st": [["Niquía", 6.33778, -75.5444], ["Bello", 6.33028, -75.5536], ["Madera", 6.31583, -75.5554], ["Acevedo", 6.300278, -75.558333], ["Tricentenario", 6.290364, -75.564681], ["Caribe", 6.27833, -75.5694], ["Universidad", 6.26944, -75.5658], ["Hospital", 6.26389, -75.5633], ["Prado", 6.25694, -75.5661], ["Parque Berrío", 6.250278, -75.568333], ["San Antonio", 6.24722, -75.5697], ["Alpujarra", 6.24306, -75.5714], ["Exposiciones", 6.23861, -75.5731], ["Industriales", 6.23, -75.5756], ["Poblado", 6.21222, -75.5781], ["Aguacatala", 6.19417, -75.5817], ["Ayurá", 6.18611, -75.5861], ["Envigado", 6.17472, -75.5969], ["Itagüí", 6.162944, -75.606708], ["Sabaneta", 6.157764, -75.616111], ["La Estrella", 6.152667, -75.626556]]}, "B": {"name": "Línea B", "color": "#f28c00", "st": [["San Antonio", 6.24722, -75.5697], ["Cisneros", 6.24917, -75.5753], ["Suramericana", 6.25306, -75.5831], ["Estadio", 6.25333, -75.5883], ["Floresta", 6.25861, -75.5978], ["Santa Lucía", 6.25806, -75.6038], ["San Javier", 6.25694, -75.6139]]}};var TR='San Antonio';
+var map=L.map('map',{zoomControl:false,attributionControl:false}).setView([6.25,-75.57],13);
+L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',{maxZoom:19}).addTo(map);
+var ALL=[];Object.keys(L0).forEach(function(k){var l=L0[k];L.polyline(l.st.map(function(s){return[s[1],s[2]]}),{color:l.color,weight:7,opacity:.9}).addTo(map);
+ l.st.forEach(function(s,i){ALL.push({n:s[0],lat:s[1],lon:s[2],line:k,i:i});L.circleMarker([s[1],s[2]],{radius:6,color:'#fff',weight:2,fillColor:l.color,fillOpacity:1}).bindTooltip(s[0]).addTo(map)})});
+function $(i){return document.getElementById(i)}
+function hav(a,b,c,d){var R=6371000,r=Math.PI/180,x=(c-a)*r,y=(d-b)*r,h=Math.sin(x/2)*Math.sin(x/2)+Math.cos(a*r)*Math.cos(c*r)*Math.sin(y/2)*Math.sin(y/2);return 2*R*Math.asin(Math.sqrt(h))}
+function fd(m){return m<1000?Math.round(m)+' m':(m/1000).toFixed(1)+' km'}
+var dest=JSON.parse(localStorage.getItem('mdeDest')||'null'),me=null,meMk=null,last=null,dir=0,said={};
+function say(t){try{speechSynthesis.cancel();var u=new SpeechSynthesisUtterance(t);u.lang='es-CO';speechSynthesis.speak(u)}catch(e){}if(navigator.vibrate)navigator.vibrate([400,150,400,150,400])}
+function stOf(line,n){var a=L0[line].st;for(var i=0;i<a.length;i++)if(a[i][0]===n)return i;return -1}
+function plan(from){if(!dest)return null;var lines=[from.line];if(from.n===TR)lines=['A','B'];
+ for(var j=0;j<lines.length;j++){var ln=lines[j];if(stOf(ln,dest.n)>=0){return[{line:ln,from:stOf(ln,from.n),to:stOf(ln,dest.n)}]}}
+ return[{line:from.line,from:from.i,to:stOf(from.line,TR)},{line:dest.line,from:stOf(dest.line,TR),to:dest.i}]}
+function onPos(p){var la=p.coords.latitude,lo=p.coords.longitude;me=[la,lo];
+ if(!meMk){meMk=L.circleMarker(me,{radius:9,color:'#fff',weight:3,fillColor:'#1a73e8',fillOpacity:1}).addTo(map);map.setView(me,15)}else meMk.setLatLng(me);
+ var best=null,bd=1e12;ALL.forEach(function(s){var d=hav(la,lo,s.lat,s.lon);if(d<bd){bd=d;best=s}});
+ if(dest&&dest.line!==best.line&&best.n===TR){best=ALL.filter(function(s){return s.n===TR&&s.line===dest.line})[0]||best}
+ $('near').textContent=best.n+' · '+L0[best.line].name;
+ if(last&&last.line===best.line&&last.i!==best.i)dir=best.i>last.i?1:-1;last=best;
+ var pl=plan(best),nx=null;
+ if(pl){var seg=pl[0];if(seg.to!==seg.from)dir=seg.to>seg.from?1:-1}
+ var a=L0[best.line].st,ni=best.i+(dir||0);
+ var dCur=bd;if(dir&&ni>=0&&ni<a.length){nx=a[ni];$('next').textContent=nx[0];$('dist').textContent=fd(hav(la,lo,nx[1],nx[2]))}else{$('next').textContent=dir?'Fin de línea':'—';$('dist').textContent=fd(bd)}
+ var al=$('alert');al.style.display='none';
+ if(pl){var stops=pl.map(function(s){return Math.abs(s.to-s.from)}),tot=stops.reduce(function(x,y){return x+y},0);
+  $('route').textContent='Destino: '+dest.n+' · '+tot+' estaciones'+(pl.length>1?' · trasbordo en '+TR:'');
+  var tgt=pl[0].to,tname=L0[pl[0].line].st[tgt][0],isTr=pl.length>1;
+  if(best.i===tgt&&dCur<250){al.textContent=isTr?'Bájese aquí: trasbordo a '+L0[pl[1].line].name:'Llegó a '+tname;al.style.display='block';var k='a'+tname+isTr;if(!said[k]){said[k]=1;say(isTr?'Bájese aquí en '+tname+'. Haga trasbordo a la '+L0[pl[1].line].name:'Llegó a '+tname+'. Bájese aquí.')}}
+  else if(nx&&ni===tgt){al.textContent='¡Bájese en la próxima! '+tname;al.style.display='block';var k2='n'+tname;if(!said[k2]){said[k2]=1;say('Atención. Bájese en la próxima estación: '+tname)}}
+ }else $('route').textContent='';
+}
+function err(e){$('near').textContent='Active el GPS'}
+if(navigator.geolocation)navigator.geolocation.watchPosition(onPos,err,{enableHighAccuracy:true,maximumAge:2000,timeout:20000});
+function build(){var h='';Object.keys(L0).forEach(function(k){var l=L0[k];h+='<div class="ln"><span class="dot" style="background:'+l.color+'"></span>'+l.name+'</div>';l.st.forEach(function(s,i){h+='<div class="st" data-l="'+k+'" data-i="'+i+'">'+s[0]+'</div>'})});$('list').innerHTML=h}
+build();
+$('bDest').onclick=function(){$('sheet').style.display='block';try{speechSynthesis.speak(new SpeechSynthesisUtterance(''))}catch(e){}};
+$('sheet').onclick=function(e){var t=e.target;if(t.classList.contains('st')){var k=t.dataset.l,i=+t.dataset.i,s=L0[k].st[i];dest={n:s[0],line:k,i:i};localStorage.setItem('mdeDest',JSON.stringify(dest));said={};$('bDest').textContent='→ '+s[0];$('sheet').style.display='none';if(meMk)onPos({coords:{latitude:me[0],longitude:me[1]}})}else if(t.id==='sheet')$('sheet').style.display='none'};
+$('bStop').onclick=function(){dest=null;localStorage.removeItem('mdeDest');$('bDest').textContent='¿A dónde va?';$('route').textContent='';$('alert').style.display='none'};
+if(dest)$('bDest').textContent='→ '+dest.n;
+</script></body></html>
