@@ -181,6 +181,7 @@ body.nav #btns{bottom:calc(96px + env(safe-area-inset-bottom,0px)) !important}
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#12002a">
 <link rel="icon" href="icon-192.png">
+<script src="ttkey.js"></script>
 </head>
 <body>
 <div id="map"></div>
@@ -252,7 +253,7 @@ var KISS=[28.2920,-81.3500];
 var map=L.map('map',{maxZoom:19,zoomControl:false,attributionControl:true,rotate:true,bearing:0,touchRotate:false,rotateControl:false,shiftKeyRotate:false}).setView(KISS,13);
 var tilt3d=true;try{tilt3d=localStorage.getItem('viceNav3d')!=='0'}catch(e){}if(/iPhone|iPad|iPod/.test(navigator.userAgent))document.body.classList.add('ios');
 var headUp=true;try{headUp=localStorage.getItem('viceNavHeadUp')!=='0'}catch(e){}
-L.tileLayer('https://api.maptiler.com/maps/streets-v2-dark/256/{z}/{x}/{y}@2x.png?key=jQkuWtIhu5sX7DHh2RTD',{attribution:'© MapTiler © OpenStreetMap',maxZoom:20,keepBuffer:6,updateWhenIdle:false}).addTo(map);
+L.tileLayer('https://api.maptiler.com/maps/streets-v2-dark/256/{z}/{x}/{y}@2x.png?key=jQkuWtIhu5sX7DHh2RTD',{attribution:'© MapTiler © OpenStreetMap',maxZoom:20,keepBuffer:6,updateWhenIdle:false}).addTo(map);var TTK=window.TTK||'';var ttLayer=TTK&&L.tileLayer('https://api.tomtom.com/traffic/map/4/tile/flow/relative0-dark/{z}/{x}/{y}.png?thickness=8&key='+TTK,{maxZoom:20,opacity:.85,zIndex:5,attribution:'Tráfico © TomTom'}).addTo(map);
 // numeros de casas (zoom 18+)
 L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}',{minZoom:18,maxZoom:19,className:'numLayer',attribution:'Esri'}).addTo(map);
 
@@ -508,7 +509,11 @@ function instrSoon(s,m){if(isArrive(s)){var sd=sideOf();return'En '+m+' metros l
 
 function destTxt(){var n=function(x){return (x&&x.name?x.name:'Destino').split(',').slice(0,2).join(',')};var t=stops.length?'📍 Parada '+(stops[0].l||'A')+' ('+stops.length+(stops.length>1?' paradas':' parada')+'): '+n(stops[0]):'🏁 '+n(dest);t+='   ·  ＋ paradas';if($('bDest').textContent!==t){$('bDest').textContent=t;setBH()}}
 $('banner').onclick=function(){if(route)$('addStop').onclick()};
-function navTick(p){if(!route||!p)return;try{destTxt()}catch(e){}try{extras(p)}catch(e){}try{stopTick(p)}catch(e){}
+var ttS=null,ttD=0,ttAt=0,ttLast=0,ttWarn=0;
+function ttTick(p){if(!dest||!TTK)return;var n=Date.now();if(n-ttLast<120000)return;ttLast=n;
+fetch('https://api.tomtom.com/routing/1/calculateRoute/'+p[0]+','+p[1]+':'+dest.lat+','+dest.lon+'/json?traffic=true&travelMode=car&key='+TTK).then(function(r){return r.json()}).then(function(j){var sm=j.routes&&j.routes[0]&&j.routes[0].summary;if(!sm)return;ttS=sm.travelTimeInSeconds;ttD=sm.trafficDelayInSeconds||0;ttAt=Date.now();
+var m=Math.round(ttD/60);if(m>=5&&m>=ttWarn+5){ttWarn=m;try{say('Hay tráfico adelante. '+m+' minutos de demora')}catch(e){}}if(m<3)ttWarn=0}).catch(function(){})}
+function navTick(p){if(!route||!p)return;try{ttTick(p)}catch(e){}try{destTxt()}catch(e){}try{extras(p)}catch(e){}try{stopTick(p)}catch(e){}
   // off-route check
   if(distToLine(p,route.line)>40){offCount++;if(offCount>=2){offCount=0;say('Espere, recalculando la ruta');toast('Recalculando…',2000);navigate(dest.lat,dest.lon,true);return}}else offCount=0;
   var s=steps[nextIdx];if(!s){return}
@@ -522,11 +527,11 @@ function navTick(p){if(!route||!p)return;try{destTxt()}catch(e){}try{extras(p)}c
   if(d<=60&&!spoken[nextIdx+'b']){spoken[nextIdx+'b']=1;say(instr(s))}
   // remaining
   var rem=d,i;for(i=nextIdx;i<steps.length;i++)rem+=steps[i].distance;
-  var frac=route.distance?rem/route.distance:1;var secs=route.duration*frac;
-  $('tMi').textContent=(rem/1609.34).toFixed(1);$('tMin').textContent=Math.max(1,Math.round(secs/60));
+  var frac=route.distance?rem/route.distance:1;var secs=route.duration*frac;if(ttS!=null){var el=(Date.now()-ttAt)/1000;secs=Math.max(30,ttS-el)}
+  $('tMi').textContent=(rem/1609.34).toFixed(1);$('tMin').innerHTML=Math.max(1,Math.round(secs/60))+(ttD>=60?'<small style="color:#ff3b3b;font-size:.6em"> +'+Math.round(ttD/60)+'</small>':'');
   var eta=new Date(Date.now()+secs*1000);$('tEta').textContent=eta.toLocaleTimeString('es-CO',{hour:'numeric',minute:'2-digit'});
 }
-function stopNav(){clearOpts();sigMks.forEach(function(m){map.removeLayer(m)});sigMks=[];sigs=[];limits=[];mpts=[];lanesArr=[];stopMk2.forEach(function(m){map.removeLayer(m)});stopMk2=[];stopSigns=[];hnMk.forEach(function(m){map.removeLayer(m)});hnMk=[];destHN='';['lim','lanes','sigBox','pareBox'].forEach(function(i){$(i).style.display='none'});if(map.setBearing)map.setBearing(0);route=null;if(routeLine){map.removeLayer(routeLine);map.removeLayer(glowLine);routeLine=glowLine=null}
+function stopNav(){ttS=null;ttD=0;ttLast=0;ttWarn=0;clearOpts();sigMks.forEach(function(m){map.removeLayer(m)});sigMks=[];sigs=[];limits=[];mpts=[];lanesArr=[];stopMk2.forEach(function(m){map.removeLayer(m)});stopMk2=[];stopSigns=[];hnMk.forEach(function(m){map.removeLayer(m)});hnMk=[];destHN='';['lim','lanes','sigBox','pareBox'].forEach(function(i){$(i).style.display='none'});if(map.setBearing)map.setBearing(0);route=null;if(routeLine){map.removeLayer(routeLine);map.removeLayer(glowLine);routeLine=glowLine=null}
   $('banner').style.display='none';$('trip').style.display='none';document.body.classList.remove('nav');document.body.classList.remove('tilt');map.invalidateSize({pan:false});clearMA()}
 
 // ---------- Overpass: PARE, numeros de casa, tiendas ----------
