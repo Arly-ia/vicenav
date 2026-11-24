@@ -638,7 +638,9 @@ function loadSt(){var cc=pais;if(cc==='FAV'){STATIONS=FAVST.slice();renderSt();r
   fetch('https://de1.api.radio-browser.info/json/stations/search?'+q+'&limit=40&order=clickcount&reverse=true&hidebroken=true&is_https=true').then(function(r){return r.json()}).then(function(j){var seen={},out=base.slice();out.forEach(function(x){seen[x.u]=1});
     j.forEach(function(x){var n=(x.name||'').trim();if(out.length>=10||!x.url_resolved||x.url_resolved.indexOf('https')!==0||seen[x.url_resolved]||/BBC/i.test(n))return;seen[x.url_resolved]=1;out.push({n:n.slice(0,40),u:x.url_resolved})});
     stCache[cc]=out;if(pais===cc){STATIONS=out;renderSt()}}).catch(function(){if(pais===cc){STATIONS=base;renderSt();if(!base.length)$('stList').innerHTML='<div class="st">No cargaron, toque la bandera otra vez</div>'}})}
-function setMS(i){if(!('mediaSession' in navigator))return;try{navigator.mediaSession.metadata=new MediaMetadata({title:STATIONS[i].n,artist:'Vice Nav',album:'Radio'});
+function stFlag(n){var m=(n||'').match(/^[\u{1F1E6}-\u{1F1FF}]{2}/u);if(m)return m[0];for(var k=0;k<PAISES.length;k++)if(PAISES[k][0]===pais&&pais!=='FAV')return PAISES[k][1];return '📻'}
+function flagArt(f){try{var c=document.createElement('canvas');c.width=c.height=256;var x=c.getContext('2d');x.fillStyle='#1a0b3d';x.fillRect(0,0,256,256);x.font='190px "Apple Color Emoji","Noto Color Emoji",sans-serif';x.textAlign='center';x.textBaseline='middle';x.fillText(f,128,140);return c.toDataURL('image/png')}catch(e){return ''}}
+function setMS(i){if(!('mediaSession' in navigator))return;try{var nm=STATIONS[i].n,fl=stFlag(nm),clean=nm.replace(/^[\u{1F1E6}-\u{1F1FF}]{2}\s*/u,''),art=flagArt(fl);navigator.mediaSession.metadata=new MediaMetadata({title:fl+' '+clean,artist:clean,album:'Vice Nav',artwork:art?[{src:art,sizes:'256x256',type:'image/png'}]:[]});
  navigator.mediaSession.setActionHandler('nexttrack',function(){playSt((curSt+1)%STATIONS.length)});
  navigator.mediaSession.setActionHandler('previoustrack',function(){playSt((curSt-1+STATIONS.length)%STATIONS.length)});
  navigator.mediaSession.setActionHandler('play',function(){$('aud').play();setEq(true)});
