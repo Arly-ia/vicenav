@@ -328,7 +328,7 @@ function onFix(pos){var c=pos.coords,now=Date.now();
   else{accC.setRadius(c.accuracy)}
   $('spd').textContent=Math.round((c.speed||0)*2.23694);
   $('acc').textContent='± '+Math.round(c.accuracy)+' m';
-  var nz=(route&&dest&&dist(p,[dest.lat,dest.lon])<500)?19:null;fz=(nz&&map.getZoom()<nz)?nz:null;animTo(p,heading,c.speed);
+  var mph=(c.speed||0)*2.23694,nz=null;if(route&&follow){nz=mph>50?16:mph>30?17:18;if((window.turnD||9999)<250)nz=18;if(dest&&dist(p,[dest.lat,dest.lon])<500)nz=19}fz=(nz&&Math.abs(map.getZoom()-nz)>=1)?nz:null;animTo(p,heading,c.speed);
   if(route)navTick(p);
 }
 function onErr(e){if(e.code===1){toast('No me dio permiso de ubicación. Lo pongo en Kissimmee.',4500);map.setView(KISS,13)}else toast('Buscando señal GPS…')}
@@ -522,7 +522,7 @@ function navTick(p){if(!route||!p)return;try{ttTick(p)}catch(e){}try{destTxt()}c
   if(s.type===99&&d<40){if(!spoken['w'+nextIdx]){spoken['w'+nextIdx]=1;var wt='Llegamos a la parada '+((stops[0]&&stops[0].l)||'');say(wt);toast('📍 '+wt,3000);stops.shift();renderStops();drawStops()}nextIdx++;s=steps[nextIdx];if(!s)return;loc=s.loc;d=dist(p,loc)}
   else if(d<25&&!isArrive(s)){nextIdx++;s=steps[nextIdx];if(!s)return;loc=s.loc;d=dist(p,loc)}
   if(isArrive(s)&&d<30){var sd=sideOf();say('¡Listo, llegamos!'+(destHN?' La casa '+destHN+(sd?' queda '+sd:''):(sd?' Queda '+sd:'')));toast('¡Listo, llegamos! 🌴',4000);stops=[];renderStops();drawStops();stopNav();return}
-  $('bArr').innerHTML=arrSvg(s);$('bArr').classList.toggle('big',d<100);$('bd').textContent=fmtDist(d);$('bt').textContent=instr(s).toUpperCase();setBH();
+  $('bArr').innerHTML=arrSvg(s);$('bArr').classList.toggle('big',d<100);window.turnD=d;$('bd').textContent=fmtDist(d);$('bt').textContent=instr(s).toUpperCase();setBH();
   if(d<350)drawMA(s,nextIdx);else if(maFor!==-1)clearMA();
   if(d<=320&&d>120&&!spoken[nextIdx+'a']){spoken[nextIdx+'a']=1;say(instrSoon(s,300))}
   if(d<=60&&!spoken[nextIdx+'b']){spoken[nextIdx+'b']=1;say(instr(s))}
