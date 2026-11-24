@@ -247,6 +247,7 @@ var favs=loadFavs();
 (function(){var h=favs.find(function(f){return f.home});
   if(!h){favs.unshift({name:'Casa',addr:'2125 Sailing Way, Kissimmee, FL 34744',lat:28.257470,lon:-81.358189,home:true})}
   else if(h.lat==null){h.lat=28.257470;h.lon=-81.358189;h.addr=h.addr||'2125 Sailing Way, Kissimmee, FL 34744'}
+  if(!localStorage.getItem('viceNavRoadie')&&!favs.some(function(f){return /roadie/i.test(f.name)})){favs.splice(1,0,{name:'Roadie Warehouse',addr:'8000 Vista Reserve, Orlando, FL 32829',lat:28.47656,lon:-81.23614})}try{localStorage.setItem('viceNavRoadie','1')}catch(e){}
   try{localStorage.setItem('viceNavFavs',JSON.stringify(favs))}catch(e){}})();
 function saveFavs(){mem=favs;try{localStorage.setItem('viceNavFavs',JSON.stringify(favs))}catch(e){}renderFavs();updateCasa()}
 function home(){return favs.find(function(f){return f.home})}
@@ -541,7 +542,8 @@ function loadStores(){if(map.getZoom()<11)return;
     var la=el.lat||(el.center&&el.center.lat),lo=el.lon||(el.center&&el.center.lon);if(!la)return;var id=b.k+Math.round(la*2000)+'_'+Math.round(lo*2000);if(storeSeen[id])return;storeSeen[id]=1;
     var html='<div class="brd" style="background:'+b.c+'"><img src="https://www.google.com/s2/favicons?domain='+b.d+'&sz=64" alt=""><span>'+b.n+'</span></div>';
     L.marker([la,lo],{icon:L.divIcon({className:'',html:html,iconSize:[0,0]})}).on('click',function(){showPlace(la,lo,(el.tags.name||b.n)+(el.tags['addr:street']?', '+(el.tags['addr:housenumber']||'')+' '+el.tags['addr:street']:''))}).addTo(storeLayer)})}).catch(function(){storeDone[key]=0})}
-setTimeout(function(){toast('Vice Nav v8.5',2000)},900);
+setTimeout(function(){toast('Vice Nav v8.6',2000)},900);
+L.marker([28.47656,-81.23614],{icon:L.divIcon({className:'',html:'<div class="brd" style="background:#00a3e0"><img src="https://www.google.com/s2/favicons?domain=roadie.com&sz=64" alt=""><span>Roadie Warehouse</span></div>',iconSize:[0,0]}),zIndexOffset:500}).on('click',function(){showPlace(28.47656,-81.23614,'Roadie Warehouse, 8000 Vista Reserve, Orlando, FL 32829')}).addTo(map);
 var stT;map.on('moveend',function(){clearTimeout(stT);stT=setTimeout(loadStores,1500)});setTimeout(loadStores,2500);
 map.on('zoomend',function(){var z=map.getZoom();document.body.classList.toggle('lowz',z<13)});
 
