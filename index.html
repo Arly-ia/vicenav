@@ -156,8 +156,11 @@ body.nav #hud #acc{display:none !important}
 body.nav #hud #spd{font-size:30px;line-height:1}
 body.nav.tilt #map{inset:auto;left:-25vw;width:150vw;top:-55vh;height:155vh;transform:perspective(1500px) rotateX(28deg);transform-origin:50% 100%;will-change:transform}
 body.ios #bFull{display:none}
-#mini{display:none!important}
+body.ios #mini{display:none!important}
 body.radio:not(.nav) #searchBox{right:10px!important}
+#mini{top:auto!important;left:12px!important;right:84px!important;transform:none!important;margin:0 auto!important;width:max-content!important;max-width:calc(100vw - 96px)!important;height:52px!important;box-sizing:border-box!important;bottom:calc(22px + env(safe-area-inset-bottom,0px))!important}
+body.nav #mini{bottom:calc(var(--th,64px) + 30px + env(safe-area-inset-bottom,0px))!important}
+body:not(.nav) #miniName{max-width:40vw!important}
 body.minifree #mini{transform:none!important;right:auto!important;max-width:70vw!important}
 body.minifree.radio:not(.nav) #searchBox{right:10px}
 #mini{touch-action:none;-webkit-touch-callout:none}
@@ -647,18 +650,19 @@ function loadSt(){var cc=pais;if(cc==='FAV'){favFix();STATIONS=FAVST.slice();ren
     stCache[cc]=out;if(pais===cc){STATIONS=out;renderSt()}}).catch(function(){if(pais===cc){STATIONS=base;renderSt();if(!base.length)$('stList').innerHTML='<div class="st">No cargaron, toque la bandera otra vez</div>'}})}
 function stFlag(n){var m=(n||'').match(/^[\u{1F1E6}-\u{1F1FF}]{2}/u);if(m)return m[0];for(var k=0;k<PAISES.length;k++)if(PAISES[k][0]===pais&&pais!=='FAV')return PAISES[k][1];return '📻'}
 function flagArt(f){try{var c=document.createElement('canvas');c.width=c.height=256;var x=c.getContext('2d');x.fillStyle='#1a0b3d';x.fillRect(0,0,256,256);x.font='190px "Apple Color Emoji","Noto Color Emoji",sans-serif';x.textAlign='center';x.textBaseline='middle';x.fillText(f,128,140);return c.toDataURL('image/png')}catch(e){return ''}}
+setInterval(function(){var t=document.getElementById('trip');if(t&&t.offsetHeight)document.documentElement.style.setProperty('--th',t.offsetHeight+'px')},1000);
 function setMS(i){if(!('mediaSession' in navigator))return;try{var nm=STATIONS[i].n,fl=STATIONS[i].c&&!hasFlag(nm)?flagOf(STATIONS[i].c):stFlag(nm),clean=nm.replace(/^[\u{1F1E6}-\u{1F1FF}]{2}\s*/u,''),art=flagArt(fl);navigator.mediaSession.metadata=new MediaMetadata({title:fl+' '+clean,artist:clean,album:'Vice Nav',artwork:art?[{src:art,sizes:'256x256',type:'image/png'}]:[]});
  navigator.mediaSession.setActionHandler('nexttrack',function(){playSt((curSt+1)%STATIONS.length)});
  navigator.mediaSession.setActionHandler('previoustrack',function(){playSt((curSt-1+STATIONS.length)%STATIONS.length)});
  navigator.mediaSession.setActionHandler('play',function(){$('aud').play();setEq(true)});
  navigator.mediaSession.setActionHandler('pause',function(){$('aud').pause();setEq(false)});
  try{navigator.mediaSession.setActionHandler('stop',radioOff)}catch(e){}}catch(e){}}
-function playSt(i){var a=$('aud');curSt=i;curU=STATIONS[i].u;a.src=STATIONS[i].u;a.volume=1;$('radio').style.display='none';$('miniName').textContent=STATIONS[i].n;$('mini').style.display='flex';document.body.classList.add('radio');if(window._miniPos)_miniPos();a.play().then(function(){setEq(true);setMS(i)}).catch(function(){toast('Esa emisora no arrancó, pruebe otra')});$('bRadio').classList.add('on');renderSt()}
+function playSt(i){var a=$('aud');curSt=i;curU=STATIONS[i].u;a.src=STATIONS[i].u;a.volume=1;$('radio').style.display='none';$('miniName').textContent=STATIONS[i].n;$('mini').style.display='flex';document.body.classList.add('radio');try{localStorage.removeItem('viceNavMini3')}catch(e){}document.body.classList.remove('minifree');a.play().then(function(){setEq(true);setMS(i)}).catch(function(){toast('Esa emisora no arrancó, pruebe otra')});$('bRadio').classList.add('on');renderSt()}
 $('bRadio').onclick=function(){var p=$('radio');p.style.display=p.style.display==='block'?'none':'block';renderSt();loadSt()};
 function radioOff(){var a=$('aud');a.pause();a.removeAttribute('src');curSt=-1;curU='';$('bRadio').classList.remove('on');$('radio').style.display='none';$('mini').style.display='none';document.body.classList.remove('radio')}
 $('miniOff').onclick=radioOff;
 (function(){var m=$('mini'),sx,sy,ox,oy,drag=false,moved=false;
- m.addEventListener('touchstart',function(e){if(e.target.closest('button'))return;var t=e.touches[0],r=m.getBoundingClientRect();sx=t.clientX;sy=t.clientY;ox=r.left;oy=r.top;drag=true;moved=false},{passive:true});
+ m.addEventListener('touchstart',function(e){if(e.target.closest('button'))return;drag=false;moved=false},{passive:true});
  document.addEventListener('touchmove',function(e){if(!drag)return;var t=e.touches[0],dx=t.clientX-sx,dy=t.clientY-sy;if(!moved&&Math.abs(dx)+Math.abs(dy)<8)return;moved=true;e.preventDefault();document.body.classList.add('minifree');
   var x=Math.max(0,Math.min(innerWidth-m.offsetWidth,ox+dx)),y=Math.max(0,Math.min(innerHeight-m.offsetHeight,oy+dy));m.style.left=x+'px';m.style.top=y+'px'},{passive:false});
  document.addEventListener('touchend',function(){if(!drag)return;drag=false;if(moved){try{localStorage.setItem('viceNavMini3',JSON.stringify({x:parseInt(m.style.left),y:parseInt(m.style.top)}))}catch(e){}}});
