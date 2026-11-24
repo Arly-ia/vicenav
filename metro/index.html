@@ -28,6 +28,7 @@ button{border:0;border-radius:12px;padding:12px 14px;font-weight:700;font-size:1
 #route{font-size:14px;color:#3c4a43;margin-top:6px}
 #credit{position:fixed;right:4px;top:calc(env(safe-area-inset-top) + 62px);z-index:900;font-size:9px;color:#666;background:rgba(255,255,255,.7);padding:1px 4px;border-radius:4px}
 .tr{font-size:20px;line-height:20px;text-align:center;filter:drop-shadow(0 1px 2px rgba(0,0,0,.5))}
+.me{width:40px;height:40px;border-radius:50%;border:3px solid #fff;display:flex;align-items:center;justify-content:center;font-size:24px;box-shadow:0 0 0 4px rgba(0,0,0,.18),0 2px 8px rgba(0,0,0,.5);animation:mp 1.4s infinite alternate}@keyframes mp{to{box-shadow:0 0 0 10px rgba(0,0,0,.05),0 2px 8px rgba(0,0,0,.5)}}
 .lab{background:#fff;border-radius:6px;padding:1px 5px;font-size:11px;font-weight:700;box-shadow:0 1px 3px rgba(0,0,0,.3);white-space:nowrap}
 </style></head><body>
 <div id="map"></div>
@@ -75,14 +76,15 @@ setInterval(moveTrains,1000);moveTrains();
 var dest=JSON.parse(localStorage.getItem('mdeDest2')||'null'),me=null,meMk=null,said={},path=null,demo=null;
 function say(t){try{speechSynthesis.cancel();var u=new SpeechSynthesisUtterance(t);u.lang='es-CO';speechSynthesis.speak(u)}catch(e){}if(navigator.vibrate)navigator.vibrate([400,150,400,150,400])}
 function nearestNode(la,lo,cand){var b=null,bd=1e12;(cand||NODES).forEach(function(n){var d=hav(la,lo,n.lat,n.lon);if(d<bd){bd=d;b=n}});return[b,bd]}
-var routeLine=null;
+var routeLine=null,meLine=null;
+function meIcon(l){var c=l?l.color:'#1a73e8',ic=l?ICON[l.kind]:'🚇';return L.divIcon({className:'',html:'<div class="me" style="background:'+c+'">'+ic+'</div>',iconSize:[46,46],iconAnchor:[23,23]})}
 function drawPath(){if(routeLine){map.removeLayer(routeLine);routeLine=null}if(!path)return;routeLine=L.polyline(path.map(function(id){return[NODES[id].lat,NODES[id].lon]}),{color:'#111',weight:3,opacity:.5,dashArray:'6 6'}).addTo(map)}
 function onPos(la,lo){me=[la,lo];
- if(!meMk){meMk=L.circleMarker(me,{radius:9,color:'#fff',weight:3,fillColor:'#1a73e8',fillOpacity:1}).addTo(map);map.setView(me,15)}else meMk.setLatLng(me);
+ if(!meMk){meMk=L.marker(me,{icon:meIcon(null),zIndexOffset:2000,interactive:false}).addTo(map);map.setView(me,15)}else meMk.setLatLng(me);
  if(demo)map.panTo(me,{animate:true});
  var cand=path?path.map(function(id){return NODES[id]}):null;var r=nearestNode(la,lo,cand),best=r[0],bd=r[1];
  if(!path&&bd>50000){$('near').textContent='Lejos de Medellín';$('next').textContent='Use Modo prueba';$('dist').textContent=fd(bd);return}
- $('near').textContent=best.n+' · '+N[best.line].name;
+ $('near').textContent=best.n+' · '+N[best.line].name;var lk=best.line;if(meLine!==lk){meLine=lk;meMk.setIcon(meIcon(N[lk]))}
  if(dest&&!path){path=plan(best.id,dest.n);said={};drawPath()}
  var al=$('alert');al.style.display='none';
  if(!path){var a=N[best.line].st;$('next').textContent='—';$('dist').textContent=fd(bd);$('route').textContent='';return}
