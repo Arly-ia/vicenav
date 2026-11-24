@@ -177,7 +177,7 @@ body.nav #hud{top:calc(var(--bh,110px) + 88px) !important;right:10px !important;
 #trip{left:12px !important;right:12px !important;margin:0 auto !important;max-width:520px !important;bottom:calc(22px + env(safe-area-inset-bottom,0px)) !important;justify-content:space-evenly !important;box-sizing:border-box !important}
 body.nav #btns{bottom:calc(96px + env(safe-area-inset-bottom,0px)) !important}
 #bArr{position:absolute !important;left:8px !important;top:8px !important;width:66px !important;height:66px !important;border:0 !important;background:none !important;box-shadow:none !important;border-radius:0 !important;font:900 44px/66px system-ui,sans-serif !important;color:#fff !important}#bArr svg{width:66px;height:66px;fill:#fff;filter:drop-shadow(0 0 6px rgba(255,255,255,.55))}body.nav #banner{padding-left:84px !important;min-height:66px}
-body.nav #btns{top:calc(var(--bh,110px) + 176px) !important;bottom:auto !important;gap:8px !important}body.nav #btns .rb{width:54px !important;height:54px !important;font-size:20px !important}
+body:not(.nav) #btns{top:50% !important;bottom:auto !important;transform:translateY(-50%) !important}body.nav #btns{top:calc(var(--bh,110px) + 176px) !important;bottom:auto !important;gap:8px !important}body.nav #btns .rb{width:54px !important;height:54px !important;font-size:20px !important}body.nav #bRadio{position:fixed !important;left:10px !important;top:var(--bh,110px) !important;z-index:1001}
 </style>
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#12002a">
