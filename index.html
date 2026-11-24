@@ -3,6 +3,11 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black" />
+<meta name="apple-mobile-web-app-title" content="Vice Nav" />
+<link rel="apple-touch-icon" href="icon-192.png" />
 <meta name="theme-color" content="#12002a" />
 <title>Vice Nav</title>
 <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -521,7 +526,7 @@ function loadStores(){if(map.getZoom()<11)return;var c=map.getCenter(),gx=Math.f
     var la=el.lat||(el.center&&el.center.lat),lo=el.lon||(el.center&&el.center.lon);if(!la)return;var id=b.k+Math.round(la*2000)+'_'+Math.round(lo*2000);if(storeSeen[id])return;storeSeen[id]=1;
     var html='<div class="brd" style="background:'+b.c+'"><img src="https://www.google.com/s2/favicons?domain='+b.d+'&sz=64" alt=""><span>'+b.n+'</span></div>';
     L.marker([la,lo],{icon:L.divIcon({className:'',html:html,iconSize:[0,0]})}).on('click',function(){showPlace(la,lo,(el.tags.name||b.n)+(el.tags['addr:street']?', '+(el.tags['addr:housenumber']||'')+' '+el.tags['addr:street']:''))}).addTo(storeLayer)})}).catch(function(){storeDone[key]=0})}
-setTimeout(function(){toast('Vice Nav v8.3',2000)},900);
+setTimeout(function(){toast('Vice Nav v8.4',2000)},900);
 var stT;map.on('moveend',function(){clearTimeout(stT);stT=setTimeout(loadStores,1500)});setTimeout(loadStores,2500);
 map.on('zoomend',function(){var z=map.getZoom();document.body.classList.toggle('lowz',z<13)});
 
@@ -592,7 +597,7 @@ $('radioOff').onclick=function(){$('mini').style.display='none';var a=$('aud');a
 // ---------- buttons ----------
 $('bMute').onclick=function(){muted=!muted;this.textContent=muted?'🔇':'🔊';this.classList.toggle('off',muted);if(muted&&window.speechSynthesis)speechSynthesis.cancel();toast(muted?'Voz apagada':'Voz prendida',1500)};
 $('bCenter').onclick=function(){follow=true;if(me)followTo(dp||me,17,dp?dh:heading);else toast('Buscando su ubicación…')};
-$('bFull').onclick=function(){try{var d=document.documentElement;var pr=!document.fullscreenElement?(d.requestFullscreen||d.webkitRequestFullscreen).call(d):document.exitFullscreen();if(pr&&pr.catch)pr.catch(function(){toast('Pantalla completa no disponible')})}catch(e){toast('Pantalla completa no disponible')}};
+$('bFull').onclick=function(){var ios=/iPhone|iPad|iPod/.test(navigator.userAgent);if(ios&&!navigator.standalone){toast('En iPhone: toque Compartir y luego "Agregar a inicio". Ábrala desde ese ícono y sale a pantalla completa.',7000);return}if(ios){toast('Ya está en pantalla completa',2000);return}try{var d=document.documentElement;var pr=!document.fullscreenElement?(d.requestFullscreen||d.webkitRequestFullscreen).call(d):document.exitFullscreen();if(pr&&pr.catch)pr.catch(function(){toast('Pantalla completa no disponible')})}catch(e){toast('Pantalla completa no disponible')}};
 })();
 </script>
 <script>if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js').catch(function(){})</script>
