@@ -115,7 +115,11 @@ body:has(#results[style*="block"]) #casaBtn,body:has(#results[style*="block"]) #
 #trip span{font-size:10px !important}
 #trip button{font-size:13px !important;padding:4px 8px !important}
 #mini{position:fixed;left:50%;transform:translateX(-50%);top:calc(var(--bh,110px) + 70px);z-index:1001;display:none;align-items:center;gap:8px;padding:6px 10px;font-family:system-ui,sans-serif;letter-spacing:0;font-size:14px;max-width:70vw;border-color:var(--cyan)}
-body:not(.nav) #mini{top:calc(env(safe-area-inset-top,0px) + 74px)}
+body:not(.nav) #mini{top:10px;left:auto;right:10px;transform:none;max-width:calc(50vw - 14px);height:52px;box-sizing:border-box}
+body.radio:not(.nav) #searchBox{right:50vw}
+body.radio:not(.nav) #q{font-size:15px;padding:13px 10px}
+body:not(.nav) #miniName{max-width:18vw}
+#mini,#mini *{-webkit-user-select:none;user-select:none}
 #mini{border-radius:999px;border-color:#ff3fb0;box-shadow:0 0 12px rgba(255,63,176,.6)}
 #miniName{touch-action:none;cursor:move;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:46vw}
 #mini button{background:none;border:1px solid #fff;color:#fff;border-radius:8px;font-size:16px;padding:2px 8px}
@@ -631,18 +635,17 @@ function loadSt(){var cc=pais;if(cc==='FAV'){STATIONS=FAVST.slice();renderSt();r
   fetch('https://de1.api.radio-browser.info/json/stations/search?'+q+'&limit=40&order=clickcount&reverse=true&hidebroken=true&is_https=true').then(function(r){return r.json()}).then(function(j){var seen={},out=base.slice();out.forEach(function(x){seen[x.u]=1});
     j.forEach(function(x){var n=(x.name||'').trim();if(out.length>=10||!x.url_resolved||x.url_resolved.indexOf('https')!==0||seen[x.url_resolved]||/BBC/i.test(n))return;seen[x.url_resolved]=1;out.push({n:n.slice(0,40),u:x.url_resolved})});
     stCache[cc]=out;if(pais===cc){STATIONS=out;renderSt()}}).catch(function(){if(pais===cc){STATIONS=base;renderSt();if(!base.length)$('stList').innerHTML='<div class="st">No cargaron, toque la bandera otra vez</div>'}})}
-function playSt(i){var a=$('aud');curSt=i;curU=STATIONS[i].u;a.src=STATIONS[i].u;a.volume=1;$('radio').style.display='none';$('miniName').textContent=STATIONS[i].n;$('mini').style.display='flex';a.play().then(function(){setEq(true)}).catch(function(){toast('Esa emisora no arrancó, pruebe otra')});$('bRadio').classList.add('on');renderSt()}
+function playSt(i){var a=$('aud');curSt=i;curU=STATIONS[i].u;a.src=STATIONS[i].u;a.volume=1;$('radio').style.display='none';$('miniName').textContent=STATIONS[i].n;$('mini').style.display='flex';document.body.classList.add('radio');a.play().then(function(){setEq(true)}).catch(function(){toast('Esa emisora no arrancó, pruebe otra')});$('bRadio').classList.add('on');renderSt()}
 $('bRadio').onclick=function(){var p=$('radio');p.style.display=p.style.display==='block'?'none':'block';renderSt();loadSt()};
-function radioOff(){var a=$('aud');a.pause();a.removeAttribute('src');curSt=-1;curU='';$('bRadio').classList.remove('on');$('radio').style.display='none';$('mini').style.display='none'}
+function radioOff(){var a=$('aud');a.pause();a.removeAttribute('src');curSt=-1;curU='';$('bRadio').classList.remove('on');$('radio').style.display='none';$('mini').style.display='none';document.body.classList.remove('radio')}
 $('miniOff').onclick=radioOff;
 (function(){var m=$('mini'),sx,sy,ox,oy,drag=false,moved=false;
- try{var sp=JSON.parse(localStorage.getItem('viceNavMini2')||'null');if(sp){m.style.left=sp.x+'px';m.style.top=sp.y+'px';m.style.transform='none'}}catch(e){}
- $('miniName').addEventListener('touchstart',function(e){var t=e.touches[0],r=m.getBoundingClientRect();sx=t.clientX;sy=t.clientY;ox=r.left;oy=r.top;drag=true;moved=false},{passive:true});
+ $('miniName').addEventListener('touchstart',function(e){var t=e.touches[0],r=m.getBoundingClientRect();sx=t.clientX;sy=t.clientY;ox=r.left;oy=r.top;drag=false;moved=false},{passive:true});
  document.addEventListener('touchmove',function(e){if(!drag)return;var t=e.touches[0],dx=t.clientX-sx,dy=t.clientY-sy;if(Math.abs(dx)+Math.abs(dy)>8)moved=true;if(!moved)return;e.preventDefault();
   var x=Math.max(0,Math.min(innerWidth-m.offsetWidth,ox+dx)),y=Math.max(0,Math.min(innerHeight-m.offsetHeight,oy+dy));m.style.transform='none';m.style.left=x+'px';m.style.top=y+'px'},{passive:false});
  document.addEventListener('touchend',function(){if(!drag)return;drag=false;if(moved){try{localStorage.setItem('viceNavMini2',JSON.stringify({x:parseInt(m.style.left),y:parseInt(m.style.top)}))}catch(e){}}});
  window._miniMoved=function(){var r=moved;moved=false;return r}})();$('miniNext').onclick=function(){playSt((curSt+1)%STATIONS.length)};$('miniName').onclick=function(){if(window._miniMoved&&window._miniMoved())return;$('radio').style.display='block';renderSt()};
-$('radioOff').onclick=function(){$('mini').style.display='none';var a=$('aud');a.pause();a.removeAttribute('src');curSt=-1;curU='';$('bRadio').classList.remove('on');$('radio').style.display='none'};
+$('radioOff').onclick=function(){$('mini').style.display='none';document.body.classList.remove('radio');var a=$('aud');a.pause();a.removeAttribute('src');curSt=-1;curU='';$('bRadio').classList.remove('on');$('radio').style.display='none'};
 
 // ---------- buttons ----------
 $('bMute').onclick=function(){muted=!muted;this.textContent=muted?'🔇':'🔊';this.classList.toggle('off',muted);if(muted&&window.speechSynthesis)speechSynthesis.cancel();toast(muted?'Voz apagada':'Voz prendida',1500)};
