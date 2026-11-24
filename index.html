@@ -508,10 +508,14 @@ var OVP='https://overpass-api.de/api/interpreter';
 function ovp1(u,q){return fetch(u,{method:'POST',body:'data='+encodeURIComponent('[out:json][timeout:25];'+q)}).then(function(r){if(!r.ok)throw 0;return r.json()})}
 function ovp(q){return ovp1(OVP,q).catch(function(){return ovp1('https://overpass.private.coffee/api/interpreter',q)})}
 var stopSigns=[],stopMk2=[];
-function loadStops(line){stopMk2.forEach(function(m){map.removeLayer(m)});stopMk2=[];stopSigns=[];
+var LSTOP=null,brMk=[];fetch('stops.json').then(function(r){return r.json()}).then(function(a){LSTOP=a;browseStops()}).catch(function(){LSTOP=[]});
+function browseStops(){brMk.forEach(function(m){map.removeLayer(m)});brMk=[];if(!LSTOP||route||map.getZoom()<16)return;var b=map.getBounds().pad(0.2);LSTOP.forEach(function(a){if(b.contains(a))brMk.push(L.marker(a,{interactive:false,icon:L.divIcon({className:'',html:'<div class="pare">PARE</div>',iconSize:[34,34],iconAnchor:[17,17]})}).addTo(map))})}
+map.on('moveend zoomend',browseStops);
+function loadStops(line){brMk.forEach(function(m){map.removeLayer(m)});brMk=[];stopMk2.forEach(function(m){map.removeLayer(m)});stopMk2=[];stopSigns=[];
   var pts=[],last=null;line.forEach(function(p){if(!last||dist(last,p)>120){pts.push(p);last=p}});pts.push(line[line.length-1]);pts=pts.slice(0,400);
   var poly=pts.map(function(p){return p[0].toFixed(5)+','+p[1].toFixed(5)}).join(',');
-  ovp('node[highway=stop](around:18,'+poly+');out;').then(function(j){(j.elements||[]).forEach(function(e){if(!route)return;var p=[e.lat,e.lon];
+  var src=(LSTOP&&LSTOP.length)?Promise.resolve({elements:LSTOP.filter(function(a){return pts.some(function(q){return Math.abs(q[0]-a[0])<0.0015&&Math.abs(q[1]-a[1])<0.0015})}).map(function(a){return{lat:a[0],lon:a[1]}})}):ovp('node[highway=stop](around:18,'+poly+');out;');
+  src.then(function(j){(j.elements||[]).forEach(function(e){if(!route)return;var p=[e.lat,e.lon];
       var bi=-1,bd=1e9;for(var k=0;k<route.line.length;k++){var d=dist(p,route.line[k]);if(d<bd){bd=d;bi=k}}if(bd>25)return;
       if(stopSigns.some(function(x){return dist(x.loc,p)<25}))return;
       stopSigns.push({idx:bi,loc:p});stopMk2.push(L.marker(p,{interactive:false,icon:L.divIcon({className:'',html:'<div class="pare">PARE</div>',iconSize:[34,34],iconAnchor:[17,17]})}).addTo(map))});
